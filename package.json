@@ -1,0 +1,17 @@
+{
+  "name": "businessflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BusinessFlow — SaaS Business Management Application",
+  "scripts": {
+    "dev": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "client": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "type-check": "npm --prefix client exec -- tsc --noEmit"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}
