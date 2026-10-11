@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Printer, Sparkles } from 'lucide-react';
+import { ArrowLeft, Printer, Layers } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useDemoData } from '../../context/DemoDataContext';
@@ -20,8 +20,8 @@ export const InvoiceDetailView: React.FC = () => {
   if (!sale) {
     return (
       <div className="text-center py-12">
-        <p className="text-sm text-[#667085]">Invoice not found.</p>
-        <Link to="/invoices" className="text-xs font-semibold text-[#5546D7] mt-2 inline-block">
+        <p className="text-xs text-[#64748B]">Invoice record not found.</p>
+        <Link to="/invoices" className="text-xs font-semibold text-[#2563EB] mt-2 inline-block">
           Return to invoices
         </Link>
       </div>
@@ -37,12 +37,12 @@ export const InvoiceDetailView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4 max-w-4xl mx-auto">
       {/* Top Action Bar (hidden in print) */}
       <div className="no-print flex items-center justify-between">
         <Link
           to="/invoices"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#667085] hover:text-[#172033] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to invoices</span>
@@ -51,7 +51,7 @@ export const InvoiceDetailView: React.FC = () => {
         <Button
           variant="primary"
           size="sm"
-          leftIcon={<Printer className="w-4 h-4" />}
+          leftIcon={<Printer className="w-3.5 h-3.5" />}
           onClick={handlePrint}
         >
           Print / Save PDF
@@ -59,17 +59,17 @@ export const InvoiceDetailView: React.FC = () => {
       </div>
 
       {/* Printable Invoice Container */}
-      <div className="print-container bg-white p-8 sm:p-12 rounded-2xl border border-[#E5E7EB] shadow-sm text-[#172033]">
+      <div className="print-container bg-white p-8 sm:p-10 rounded-xl border border-[#E2E8F0] shadow-xs text-[#0F172A]">
         {/* Invoice Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-6 pb-8 border-b border-[#E5E7EB]">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-5 pb-6 border-b border-[#E2E8F0]">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-[#5546D7] text-white flex items-center justify-center font-bold">
-                <Sparkles className="w-4.5 h-4.5" />
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-md bg-[#0F172A] text-white flex items-center justify-center font-bold shadow-2xs">
+                <Layers className="w-4 h-4 text-[#38BDF8]" />
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">{settings.business_name}</h2>
+              <h2 className="text-xl font-bold tracking-tight text-[#0F172A]">{settings.business_name}</h2>
             </div>
-            <p className="text-xs text-[#667085] leading-relaxed max-w-sm">
+            <p className="text-xs text-[#64748B] leading-relaxed max-w-sm">
               {settings.address}
               <br />
               Email: {settings.email} • Tel: {settings.phone}
@@ -77,63 +77,63 @@ export const InvoiceDetailView: React.FC = () => {
           </div>
 
           <div className="text-left sm:text-right space-y-1">
-            <h3 className="text-xl font-bold text-[#5546D7] uppercase tracking-wider">
+            <h3 className="text-lg font-bold text-[#2563EB] uppercase tracking-wider">
               TAX INVOICE
             </h3>
-            <p className="font-mono text-sm font-semibold">{sale.sale_number}</p>
-            <p className="text-xs text-[#667085]">
+            <p className="font-mono text-xs font-bold text-[#0F172A]">{sale.sale_number}</p>
+            <p className="text-xs text-[#64748B]">
               Issue Date: {formatDate(sale.sale_date)}
             </p>
             <div className="pt-1">
-              <Badge paymentStatus={payStatus} />
+              <Badge paymentStatus={payStatus} size="sm" />
             </div>
           </div>
         </div>
 
-        {/* Bill To & Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6 border-b border-[#E5E7EB] text-xs">
+        {/* Bill To & Terms Details */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 py-5 border-b border-[#E2E8F0] text-xs">
           <div>
-            <h4 className="font-semibold text-[#667085] uppercase tracking-wider mb-1.5">
+            <h4 className="font-bold text-[#64748B] uppercase tracking-wider text-[10px] mb-1">
               Billed To:
             </h4>
-            <p className="text-sm font-bold text-[#172033]">{sale.customer_name_snapshot}</p>
+            <p className="text-sm font-bold text-[#0F172A]">{sale.customer_name_snapshot}</p>
             {sale.customer_contact_snapshot && (
-              <p className="text-[#667085] mt-0.5">{sale.customer_contact_snapshot}</p>
+              <p className="text-[#64748B] mt-0.5">{sale.customer_contact_snapshot}</p>
             )}
             {sale.notes && (
-              <p className="text-[#667085] mt-1 italic">Order note: {sale.notes}</p>
+              <p className="text-[#64748B] mt-1 italic">Order note: {sale.notes}</p>
             )}
           </div>
 
           <div className="sm:text-right space-y-1">
-            <h4 className="font-semibold text-[#667085] uppercase tracking-wider mb-1.5">
+            <h4 className="font-bold text-[#64748B] uppercase tracking-wider text-[10px] mb-1">
               Payment Terms:
             </h4>
-            <p className="text-[#344054]">Due on Receipt / Standard Terms</p>
-            <p className="text-[#667085]">Currency: INR (Indian Rupee - ₹)</p>
+            <p className="text-[#334155] font-medium">Due on Receipt / Standard Terms</p>
+            <p className="text-[#64748B]">Currency: INR (Indian Rupee - ₹)</p>
           </div>
         </div>
 
         {/* Line Items Table */}
-        <div className="py-6 border-b border-[#E5E7EB]">
-          <table className="w-full text-left text-xs sm:text-sm">
+        <div className="py-5 border-b border-[#E2E8F0]">
+          <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-[#E5E7EB] text-[11px] font-semibold text-[#667085] uppercase">
-                <th className="py-2.5">Item Description</th>
-                <th className="py-2.5">SKU</th>
-                <th className="py-2.5 text-right">Price</th>
-                <th className="py-2.5 text-center">Qty</th>
-                <th className="py-2.5 text-right">Line Total</th>
+              <tr className="border-b border-[#E2E8F0] text-[10px] font-bold text-[#64748B] uppercase tracking-wider">
+                <th className="py-2">Item Description</th>
+                <th className="py-2">SKU</th>
+                <th className="py-2 text-right">Unit Rate</th>
+                <th className="py-2 text-center">Qty</th>
+                <th className="py-2 text-right">Line Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F2F4F7]">
+            <tbody className="divide-y divide-[#F1F5F9]">
               {sale.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="py-3 font-medium">{item.product_name_snapshot}</td>
-                  <td className="py-3 font-mono text-xs text-[#667085]">{item.sku_snapshot}</td>
-                  <td className="py-3 text-right">{formatCurrency(item.unit_price_minor)}</td>
-                  <td className="py-3 text-center font-semibold">{item.quantity}</td>
-                  <td className="py-3 text-right font-bold">
+                  <td className="py-2.5 font-medium text-[#0F172A]">{item.product_name_snapshot}</td>
+                  <td className="py-2.5 font-mono text-[11px] text-[#64748B]">{item.sku_snapshot}</td>
+                  <td className="py-2.5 text-right tabular-nums text-[#64748B]">{formatCurrency(item.unit_price_minor)}</td>
+                  <td className="py-2.5 text-center font-bold text-[#0F172A] tabular-nums">{item.quantity}</td>
+                  <td className="py-2.5 text-right font-bold text-[#0F172A] tabular-nums">
                     {formatCurrency(item.line_subtotal_minor)}
                   </td>
                 </tr>
@@ -143,18 +143,18 @@ export const InvoiceDetailView: React.FC = () => {
         </div>
 
         {/* Totals & Payments */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
-          <div className="text-xs text-[#667085] space-y-2">
-            <h4 className="font-semibold text-[#172033]">Recorded Payments:</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-5">
+          <div className="text-xs text-[#64748B] space-y-2">
+            <h4 className="font-bold text-[#0F172A] text-[11px] uppercase tracking-wider">Payments Received:</h4>
             {sale.payments.length === 0 ? (
-              <p className="italic">No payment received yet.</p>
+              <p className="italic text-[11px]">No payment recorded yet.</p>
             ) : (
               sale.payments.map((p) => (
-                <div key={p.id} className="flex justify-between py-1 border-b border-[#F2F4F7]">
+                <div key={p.id} className="flex justify-between py-1 border-b border-[#F1F5F9] text-xs">
                   <span>
                     {p.method} ({formatDate(p.payment_date)})
                   </span>
-                  <span className="font-semibold text-[#027A48]">
+                  <span className="font-semibold text-[#059669] tabular-nums">
                     {formatCurrency(p.amount_minor)}
                   </span>
                 </div>
@@ -162,45 +162,45 @@ export const InvoiceDetailView: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-2 text-sm text-right">
-            <div className="flex justify-between text-xs py-1">
-              <span className="text-[#667085]">Subtotal (taxable):</span>
-              <span className="font-medium">{formatCurrency(sale.subtotal_minor)}</span>
+          <div className="space-y-1.5 text-xs text-right">
+            <div className="flex justify-between py-0.5">
+              <span className="text-[#64748B]">Subtotal (taxable):</span>
+              <span className="font-medium text-[#0F172A] tabular-nums">{formatCurrency(sale.subtotal_minor)}</span>
             </div>
             {sale.discount_minor > 0 && (
-              <div className="flex justify-between text-xs py-1 text-[#B42318]">
+              <div className="flex justify-between py-0.5 text-[#DC2626]">
                 <span>Discount:</span>
-                <span>-{formatCurrency(sale.discount_minor)}</span>
+                <span className="tabular-nums">-{formatCurrency(sale.discount_minor)}</span>
               </div>
             )}
-            <div className="flex justify-between text-xs py-1">
-              <span className="text-[#667085]">
+            <div className="flex justify-between py-0.5">
+              <span className="text-[#64748B]">
                 GST ({settings.default_tax_rate_basis_points / 100}%):
               </span>
-              <span className="font-medium">{formatCurrency(sale.tax_minor)}</span>
+              <span className="font-medium text-[#0F172A] tabular-nums">{formatCurrency(sale.tax_minor)}</span>
             </div>
-            <div className="flex justify-between text-base font-bold py-2 border-t-2 border-[#172033]">
+            <div className="flex justify-between text-sm font-bold py-1.5 border-t border-[#0F172A] text-[#0F172A]">
               <span>Invoice Total:</span>
-              <span className="text-[#5546D7]">{formatCurrency(sale.total_minor)}</span>
+              <span className="text-[#2563EB] tabular-nums">{formatCurrency(sale.total_minor)}</span>
             </div>
-            <div className="flex justify-between text-xs font-semibold py-1 text-[#027A48]">
-              <span>Total Paid:</span>
-              <span>{formatCurrency(totalPaidMinor)}</span>
+            <div className="flex justify-between text-xs font-semibold py-0.5 text-[#059669]">
+              <span>Amount Paid:</span>
+              <span className="tabular-nums">{formatCurrency(totalPaidMinor)}</span>
             </div>
-            <div className="flex justify-between text-sm font-bold py-1 text-[#B54708]">
+            <div className="flex justify-between text-xs font-bold py-0.5 text-[#B45309]">
               <span>Balance Due:</span>
-              <span>{formatCurrency(balanceDueMinor)}</span>
+              <span className="tabular-nums">{formatCurrency(balanceDueMinor)}</span>
             </div>
           </div>
         </div>
 
         {/* Demo Footer Note */}
-        <div className="mt-12 pt-6 border-t border-[#E5E7EB] text-center text-[11px] text-[#98A2B3]">
+        <div className="mt-8 pt-4 border-t border-[#E2E8F0] text-center text-[10px] text-[#94A3B8]">
           <p>
-            Thank you for your business. For billing queries, contact {settings.email}.
+            Thank you for your business. For invoice questions, contact {settings.email}.
           </p>
-          <p className="mt-1 italic">
-            This document is a portfolio demonstration invoice. Values and calculations are for demonstration purposes.
+          <p className="mt-0.5 italic">
+            Portfolio demonstration tax invoice preview. Values and calculations are for demonstration purposes.
           </p>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { ToastContainer } from '../feedback/ToastContainer';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useDemoData } from '../../context/DemoDataContext';
-import { RotateCcw, Sparkles, CheckCircle2 } from 'lucide-react';
+import { RotateCcw, Layers, CheckCircle2 } from 'lucide-react';
 
 export const AppShell: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,8 +19,8 @@ export const AppShell: React.FC = () => {
   } = useDemoData();
 
   return (
-    <div className="flex h-screen w-full bg-[#F7F8FA] overflow-hidden">
-      {/* Desktop Sidebar (Fixed/Sticky) */}
+    <div className="flex h-screen w-full bg-[#F8FAFC] overflow-hidden font-sans">
+      {/* Desktop Sidebar (Fixed) */}
       <div className="hidden lg:block h-full shrink-0">
         <Sidebar />
       </div>
@@ -29,10 +29,10 @@ export const AppShell: React.FC = () => {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="fixed inset-0 bg-[#0C111D]/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-[#0F172A]/50 backdrop-blur-xs transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative w-72 max-w-[85vw] h-full z-10 animate-in slide-in-from-left duration-200">
+          <div className="relative w-64 max-w-[80vw] h-full z-10 animate-in slide-in-from-left duration-200">
             <Sidebar onCloseMobile={() => setMobileMenuOpen(false)} />
           </div>
         </div>
@@ -42,8 +42,8 @@ export const AppShell: React.FC = () => {
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         <Header onOpenMobileMenu={() => setMobileMenuOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5 lg:p-6">
+          <div className="max-w-7xl mx-auto space-y-5">
             <Outlet />
           </div>
         </main>
@@ -56,7 +56,7 @@ export const AppShell: React.FC = () => {
       <Modal
         isOpen={isResetModalOpen}
         onClose={() => setResetModalOpen(false)}
-        title="Reset Demo Data"
+        title="Reset Demo Workspace"
         maxWidth="md"
         footer={
           <>
@@ -65,7 +65,7 @@ export const AppShell: React.FC = () => {
             </Button>
             <Button
               variant="destructive"
-              leftIcon={<RotateCcw className="w-4 h-4" />}
+              leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
               onClick={resetDemoData}
             >
               Reset to seed state
@@ -74,15 +74,16 @@ export const AppShell: React.FC = () => {
         }
       >
         <div className="space-y-3">
-          <p className="text-sm text-[#344054]">
-            Are you sure you want to reset the demo workspace? This will erase any newly created
-            products, sales, customers, or expenses and reseed the application with initial
-            fictional sample records for <span className="font-semibold text-[#172033]">Northstar Supplies</span>.
+          <p className="text-sm text-[#334155] leading-relaxed">
+            Are you sure you want to restore the demo environment? Any newly created
+            orders, products, customers, or expenses will be cleared, and all catalog records will
+            revert to the initial seed state for{' '}
+            <strong className="text-[#0F172A]">Northstar Supplies</strong>.
           </p>
-          <div className="p-3.5 rounded-xl bg-[#FEF3F2] border border-[#FECDCA] text-xs text-[#B42318] flex items-start gap-2.5">
+          <div className="p-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#B91C1C] flex items-start gap-2.5">
             <RotateCcw className="w-4 h-4 shrink-0 mt-0.5" />
             <span>
-              All product stock levels, invoices, and expense charts will be re-initialized atomically.
+              All product stock quantities, invoices, and expense vouchers will be reset atomically.
             </span>
           </div>
         </div>
@@ -96,47 +97,52 @@ export const AppShell: React.FC = () => {
         maxWidth="md"
         footer={
           <Button variant="primary" onClick={() => setAboutModalOpen(false)}>
-            Close
+            Dismiss
           </Button>
         }
       >
-        <div className="space-y-4 text-sm text-[#344054]">
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[#EEECFB] text-[#5546D7]">
-            <Sparkles className="w-5 h-5 shrink-0" />
+        <div className="space-y-4 text-xs text-[#334155]">
+          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-[#EFF6FF] border border-[#DBEAFE] text-[#1E40AF]">
+            <Layers className="w-5 h-5 shrink-0 text-[#2563EB]" />
             <div>
-              <p className="font-semibold text-[#172033]">Portfolio SaaS Demo</p>
-              <p className="text-xs text-[#5546D7]">Built to demonstrate full-stack engineering excellence.</p>
+              <p className="font-semibold text-sm text-[#0F172A]">Portfolio SaaS Demonstration</p>
+              <p className="text-[11px] text-[#2563EB]">
+                Full-stack business management application with verified business logic.
+              </p>
             </div>
           </div>
 
-          <p>
-            <strong className="text-[#172033]">BusinessFlow</strong> is a complete business management application designed for small retailers and service businesses.
+          <p className="leading-relaxed">
+            <strong className="text-[#0F172A]">BusinessFlow</strong> provides a cohesive, end-to-end
+            retail and service operations system: product inventory with atomic movements, customer
+            tracking, sales processing with price snapshots, printable tax invoices, and live
+            operating metrics.
           </p>
 
           <div className="space-y-2">
-            <p className="font-medium text-[#172033]">Phase 1 Architecture Highlights:</p>
-            <ul className="space-y-1.5 text-xs text-[#667085]">
+            <p className="font-semibold text-[#0F172A]">Key Architectural Pillars:</p>
+            <ul className="space-y-1.5 text-[#475569]">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#12B76A] shrink-0" />
-                <span>Responsive App Shell across Desktop (1440px), Tablet, and Mobile (390px)</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                <span>Exact integer paise minor-currency math preventing floating-point errors</span>
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#12B76A] shrink-0" />
-                <span>Full routing tree with deep links, 404 handler, and active navigation indicators</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                <span>Atomic stock reduction & audit movements on order fulfillment and reversal</span>
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#12B76A] shrink-0" />
-                <span>Exact INR paise minor-currency formatting and stock invariant safeguards</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                <span>Print-optimized tax invoices with strict browser-print styling</span>
               </li>
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[#12B76A] shrink-0" />
-                <span>Consistent seed data for Northstar Supplies with atomic reset functionality</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#059669] shrink-0" />
+                <span>Responsive, high-density dashboard built on real transaction data</span>
               </li>
             </ul>
           </div>
 
-          <p className="text-xs text-[#98A2B3]">
-            Fictional demo data only. Does not contain real financial or tax information.
+          <p className="text-[11px] text-[#94A3B8] border-t border-[#E2E8F0] pt-3">
+            Portfolio demonstration with fictional sample business records.
           </p>
         </div>
       </Modal>

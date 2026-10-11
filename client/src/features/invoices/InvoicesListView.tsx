@@ -30,24 +30,24 @@ export const InvoicesListView: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-[#E5E7EB]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3.5 rounded-xl border border-[#E2E8F0] shadow-xs">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-[#98A2B3] absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search by invoice number or client name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-[#F9FAFB] border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+            className="w-full pl-9 pr-3.5 py-1.5 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#2563EB]"
           />
         </div>
 
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 text-xs font-medium text-[#344054] bg-[#F9FAFB] border border-[#D0D5DD] rounded-lg focus:outline-none"
+          className="px-2.5 py-1.5 text-xs font-medium text-[#334155] bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         >
           <option value="ALL">All Invoices</option>
           <option value="PAID">Paid</option>
@@ -60,14 +60,14 @@ export const InvoicesListView: React.FC = () => {
       <Card>
         {filteredInvoices.length === 0 ? (
           <EmptyState
-            icon={<FileText className="w-6 h-6" />}
+            icon={<FileText className="w-5 h-5" />}
             title="No invoices found"
-            description="Invoices are automatically generated when sales orders are processed."
+            description="Invoices are automatically generated when customer orders are fulfilled."
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#F9FAFB] text-[11px] font-semibold text-[#667085] uppercase tracking-wider border-b border-[#E5E7EB]">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-[#F8FAFC] text-[11px] font-semibold text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0]">
                 <tr>
                   <th className="px-5 py-3">Invoice Number</th>
                   <th className="px-5 py-3">Billed Customer</th>
@@ -78,47 +78,47 @@ export const InvoicesListView: React.FC = () => {
                   <th className="px-5 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E5E7EB]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {filteredInvoices.map((inv) => {
                   const payStatus = getSalePaymentStatus(inv);
                   const balanceDue = getSaleBalanceDue(inv);
 
                   return (
-                    <tr key={inv.id} className="hover:bg-[#F9FAFB] transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-[#172033]">
-                        <Link to={`/invoices/${inv.id}`} className="hover:text-[#5546D7]">
+                    <tr key={inv.id} className="hover:bg-[#F8FAFC] transition-colors">
+                      <td className="px-5 py-3 font-semibold text-[#0F172A]">
+                        <Link to={`/invoices/${inv.id}`} className="hover:text-[#2563EB]">
                           {inv.sale_number}
                         </Link>
                       </td>
 
-                      <td className="px-5 py-3.5 text-[#344054] font-medium">
+                      <td className="px-5 py-3 text-[#0F172A] font-medium">
                         {inv.customer_name_snapshot}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs text-[#667085]">
+                      <td className="px-5 py-3 text-[#64748B]">
                         {formatDate(inv.sale_date)}
                       </td>
 
-                      <td className="px-5 py-3.5 text-right font-bold text-[#172033]">
+                      <td className="px-5 py-3 text-right font-bold text-[#0F172A] tabular-nums">
                         {formatCurrency(inv.total_minor)}
                       </td>
 
-                      <td className="px-5 py-3.5 text-right font-semibold text-xs">
+                      <td className="px-5 py-3 text-right font-semibold text-xs tabular-nums">
                         {balanceDue > 0 ? (
-                          <span className="text-[#B54708]">{formatCurrency(balanceDue)}</span>
+                          <span className="text-[#B45309]">{formatCurrency(balanceDue)}</span>
                         ) : (
-                          <span className="text-[#027A48]">₹0.00</span>
+                          <span className="text-[#059669]">₹0.00</span>
                         )}
                       </td>
 
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3">
                         <Badge paymentStatus={payStatus} size="sm" />
                       </td>
 
-                      <td className="px-5 py-3.5 text-right">
+                      <td className="px-5 py-3 text-right">
                         <Link
                           to={`/invoices/${inv.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#5546D7] hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:underline"
                         >
                           View & Print <ArrowRight className="w-3.5 h-3.5" />
                         </Link>

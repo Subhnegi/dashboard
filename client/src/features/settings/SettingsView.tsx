@@ -40,67 +40,67 @@ export const SettingsView: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Business / Trading Name
                 </label>
                 <input
                   type="text"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Currency Symbol & Code
                 </label>
                 <input
                   type="text"
                   disabled
                   value="INR (₹) — Indian Rupee"
-                  className="w-full px-3.5 py-2 text-sm bg-[#F2F4F7] border border-[#D0D5DD] rounded-lg text-[#667085] cursor-not-allowed"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Billing Email
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Telephone Contact
                 </label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Official Business Address
                 </label>
                 <textarea
                   rows={2}
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Default Tax Rate (% GST)
                 </label>
                 <input
@@ -108,27 +108,27 @@ export const SettingsView: React.FC = () => {
                   step="0.1"
                   value={taxPercent}
                   onChange={(e) => setTaxPercent(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors tabular-nums"
                 />
-                <p className="text-[11px] text-[#667085] mt-1">
+                <p className="text-[11px] text-slate-500 mt-1">
                   Used for automated GST computations in sales checkout.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Invoice Number Prefix
                 </label>
                 <input
                   type="text"
                   value={invoicePrefix}
                   onChange={(e) => setInvoicePrefix(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 font-mono"
+                  className="w-full px-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors font-mono"
                 />
               </div>
             </div>
 
-            <div className="pt-4 border-t border-[#E5E7EB] flex justify-end">
+            <div className="pt-4 border-t border-slate-200/80 flex justify-end">
               <Button type="submit" variant="primary" leftIcon={<Save className="w-4 h-4" />}>
                 Save settings
               </Button>
@@ -138,7 +138,7 @@ export const SettingsView: React.FC = () => {
       </Card>
 
       {/* Danger Zone: Demo Reset */}
-      <Card className="border-[#FECDCA]">
+      <Card className="border-rose-200 bg-rose-50/20">
         <CardHeader
           title="Sandbox Data Management"
           subtitle="Reset test transactions and restore original seed records"
@@ -146,8 +146,8 @@ export const SettingsView: React.FC = () => {
         <CardContent>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-[#172033]">Reset Demo Workspace</p>
-              <p className="text-xs text-[#667085] max-w-md mt-0.5">
+              <p className="text-sm font-semibold text-slate-900">Reset Demo Workspace</p>
+              <p className="text-xs text-slate-600 max-w-md mt-0.5">
                 Revert all products, sales, stock levels, invoices, and expenses back to the default
                 sample state for Northstar Supplies.
               </p>
@@ -167,3 +167,4 @@ export const SettingsView: React.FC = () => {
     </div>
   );
 };
+

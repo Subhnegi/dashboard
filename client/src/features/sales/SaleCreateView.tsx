@@ -58,12 +58,10 @@ export const SaleCreateView: React.FC = () => {
   );
 
   const taxableAmountMinor = Math.max(0, grossItemsMinor - discountMinor);
-  // Calculate 18% GST (basis points / 10000)
   const taxMinor = Math.round((taxableAmountMinor * settings.default_tax_rate_basis_points) / 10000);
   const grandTotalMinor = taxableAmountMinor + taxMinor;
 
   const handleAddRow = () => {
-    // Find a product that isn't already added and has stock
     const available = products.find(
       (p) => p.stock_quantity > 0 && !lineItems.some((li) => li.productId === p.id)
     );
@@ -93,7 +91,6 @@ export const SaleCreateView: React.FC = () => {
       return;
     }
 
-    // Check duplicate products
     const productIds = lineItems.map((i) => i.productId);
     if (new Set(productIds).size !== productIds.length) {
       setErrorMsg('Duplicate products in line items. Please adjust quantity on a single row.');
@@ -146,7 +143,7 @@ export const SaleCreateView: React.FC = () => {
         payment_date: new Date().toISOString(),
         method: paymentMethod,
         reference: paymentRef || undefined,
-        note: 'Full payment received at order checkout',
+        note: 'Full settlement at order creation',
         created_at: new Date().toISOString(),
       });
     } else if (paymentOption === 'PARTIAL') {
@@ -186,34 +183,34 @@ export const SaleCreateView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4">
       <div>
         <Link
           to="/sales"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#667085] hover:text-[#172033] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to sales list</span>
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Customer Selection Card */}
         <Card>
           <CardHeader
-            title="1. Customer Information"
-            subtitle="Select an existing client account or walk-in customer"
+            title="1. Customer Account"
+            subtitle="Select an existing customer or counter client"
           />
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
-                  Customer Account
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
+                  Customer
                 </label>
                 <select
                   value={selectedCustomerId}
                   onChange={(e) => setSelectedCustomerId(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
                   {customers.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -224,13 +221,15 @@ export const SaleCreateView: React.FC = () => {
               </div>
 
               {selectedCustomer && (
-                <div className="p-3 bg-[#F9FAFB] rounded-xl border border-[#E5E7EB] text-xs space-y-1">
-                  <div className="font-semibold text-[#172033]">{selectedCustomer.name}</div>
-                  <div className="text-[#667085]">
-                    {selectedCustomer.email || selectedCustomer.phone || 'Walk-in client'}
+                <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] text-xs space-y-0.5">
+                  <div className="font-semibold text-[#0F172A]">{selectedCustomer.name}</div>
+                  <div className="text-[#64748B]">
+                    {selectedCustomer.email || selectedCustomer.phone || 'Over-the-counter sale'}
                   </div>
                   {selectedCustomer.billing_address && (
-                    <div className="text-[#98A2B3] truncate">{selectedCustomer.billing_address}</div>
+                    <div className="text-[#94A3B8] text-[11px] truncate">
+                      {selectedCustomer.billing_address}
+                    </div>
                   )}
                 </div>
               )}
@@ -241,8 +240,8 @@ export const SaleCreateView: React.FC = () => {
         {/* Line Items Card */}
         <Card>
           <CardHeader
-            title="2. Order Line Items"
-            subtitle="Add products and verify available quantities"
+            title="2. Line Items"
+            subtitle="Add products and verify live inventory balances"
             action={
               <Button
                 type="button"
@@ -255,8 +254,8 @@ export const SaleCreateView: React.FC = () => {
               </Button>
             }
           />
-          <div className="p-5 space-y-4">
-            <div className="space-y-3">
+          <div className="p-4 space-y-3">
+            <div className="space-y-2.5">
               {lineItems.map((item, idx) => {
                 const prod = products.find((p) => p.id === item.productId);
                 const maxStock = prod ? prod.stock_quantity : 0;
@@ -265,17 +264,17 @@ export const SaleCreateView: React.FC = () => {
                 return (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl border border-[#E5E7EB] bg-[#FCFCFD] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3"
+                    className="p-3 rounded-lg border border-[#E2E8F0] bg-[#FAFAFA] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3"
                   >
                     {/* Product Selector */}
                     <div className="flex-1">
-                      <label className="block text-[11px] font-semibold text-[#667085] uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                         Product
                       </label>
                       <select
                         value={item.productId}
                         onChange={(e) => handleUpdateItem(idx, { productId: e.target.value })}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       >
                         {products.map((p) => (
                           <option key={p.id} value={p.id} disabled={p.stock_quantity <= 0}>
@@ -287,8 +286,8 @@ export const SaleCreateView: React.FC = () => {
                     </div>
 
                     {/* Quantity */}
-                    <div className="w-28">
-                      <label className="block text-[11px] font-semibold text-[#667085] uppercase mb-1">
+                    <div className="w-24">
+                      <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                         Qty (Max {maxStock})
                       </label>
                       <input
@@ -299,40 +298,40 @@ export const SaleCreateView: React.FC = () => {
                         onChange={(e) =>
                           handleUpdateItem(idx, { quantity: parseInt(e.target.value) || 1 })
                         }
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 text-center"
+                        className="w-full px-2 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-center tabular-nums font-semibold"
                       />
                     </div>
 
-                    {/* Unit Price */}
+                    {/* Rate */}
                     <div className="w-28 text-right hidden sm:block">
-                      <label className="block text-[11px] font-semibold text-[#667085] uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                         Rate
                       </label>
-                      <div className="py-2 text-sm font-medium text-[#667085]">
+                      <div className="py-1 text-xs font-medium text-[#64748B] tabular-nums">
                         {formatCurrency(prod?.selling_price_minor || 0)}
                       </div>
                     </div>
 
                     {/* Line Total */}
                     <div className="w-32 text-right">
-                      <label className="block text-[11px] font-semibold text-[#667085] uppercase mb-1">
+                      <label className="block text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                         Line Total
                       </label>
-                      <div className="py-2 text-sm font-bold text-[#172033]">
+                      <div className="py-1 text-xs font-bold text-[#0F172A] tabular-nums">
                         {formatCurrency(lineTotalMinor)}
                       </div>
                     </div>
 
                     {/* Remove Action */}
                     {lineItems.length > 1 && (
-                      <div className="pt-5 flex justify-end">
+                      <div className="pt-4 flex justify-end">
                         <button
                           type="button"
                           onClick={() => handleRemoveRow(idx)}
-                          className="p-1.5 text-[#98A2B3] hover:text-[#B42318] hover:bg-[#FEF3F2] rounded-lg transition-colors"
+                          className="p-1 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded transition-colors cursor-pointer"
                           title="Remove item"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -345,7 +344,7 @@ export const SaleCreateView: React.FC = () => {
               type="button"
               variant="outline"
               size="sm"
-              leftIcon={<Plus className="w-3.5 h-3.5" />}
+              leftIcon={<Plus className="w-3 h-3" />}
               onClick={handleAddRow}
             >
               Add another product
@@ -354,32 +353,32 @@ export const SaleCreateView: React.FC = () => {
         </Card>
 
         {/* Pricing, Discount, and Payments */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Payment Terms */}
           <Card>
             <CardHeader
               title="3. Payment Collection"
-              subtitle="Record settlement status for this order"
+              subtitle="Record settlement details for this invoice"
             />
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-2">
+                <label className="block text-xs font-semibold text-[#334155] mb-1.5">
                   Payment Status
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 bg-[#F1F5F9] p-1 rounded-lg border border-[#E2E8F0]">
                   {[
-                    { id: 'FULL', label: 'Paid Full' },
-                    { id: 'PARTIAL', label: 'Partial' },
-                    { id: 'UNPAID', label: 'Unpaid' },
+                    { id: 'FULL', label: 'Paid in Full' },
+                    { id: 'PARTIAL', label: 'Partial Deposit' },
+                    { id: 'UNPAID', label: 'Unpaid / Later' },
                   ].map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setPaymentOption(opt.id as any)}
-                      className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all ${
+                      className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
                         paymentOption === opt.id
-                          ? 'bg-[#EEECFB] text-[#5546D7] border-[#5546D7] shadow-xs'
-                          : 'bg-white text-[#344054] border-[#D0D5DD] hover:bg-[#F9FAFB]'
+                          ? 'bg-white text-[#0F172A] shadow-2xs'
+                          : 'text-[#64748B] hover:text-[#0F172A]'
                       }`}
                     >
                       {opt.label}
@@ -392,8 +391,8 @@ export const SaleCreateView: React.FC = () => {
                 <>
                   {paymentOption === 'PARTIAL' && (
                     <div>
-                      <label className="block text-xs font-semibold text-[#344054] mb-1">
-                        Advance Paid Amount (₹)
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">
+                        Advance Deposit Amount (₹)
                       </label>
                       <input
                         type="number"
@@ -401,20 +400,20 @@ export const SaleCreateView: React.FC = () => {
                         value={partialAmountRupees}
                         onChange={(e) => setPartialAmountRupees(e.target.value)}
                         placeholder="e.g. 5000.00"
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 tabular-nums"
                       />
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-semibold text-[#344054] mb-1">
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">
                         Method
                       </label>
                       <select
                         value={paymentMethod}
                         onChange={(e) => setPaymentMethod(e.target.value as any)}
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none"
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       >
                         <option value="UPI">UPI</option>
                         <option value="CARD">Card POS</option>
@@ -424,15 +423,15 @@ export const SaleCreateView: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-[#344054] mb-1">
-                        Txn Reference
+                      <label className="block text-xs font-semibold text-[#334155] mb-1">
+                        Reference #
                       </label>
                       <input
                         type="text"
                         value={paymentRef}
                         onChange={(e) => setPaymentRef(e.target.value)}
-                        placeholder="UPI ref or slip #"
-                        className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none"
+                        placeholder="UPI or slip ID"
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                   </div>
@@ -440,15 +439,15 @@ export const SaleCreateView: React.FC = () => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-[#344054] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Order Notes
                 </label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Delivery instructions, PO number, or client remarks..."
-                  className="w-full px-3 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none"
+                  placeholder="PO reference or delivery instructions..."
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
             </CardContent>
@@ -460,54 +459,54 @@ export const SaleCreateView: React.FC = () => {
               title="4. Order Summary"
               subtitle="Automated tax calculation and grand total"
             />
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm py-1">
-                <span className="text-[#667085]">Items Subtotal:</span>
-                <span className="font-semibold text-[#172033]">
+            <CardContent className="space-y-2.5">
+              <div className="flex justify-between text-xs py-1">
+                <span className="text-[#64748B]">Items Subtotal:</span>
+                <span className="font-semibold text-[#0F172A] tabular-nums">
                   {formatCurrency(grossItemsMinor)}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between text-sm py-1 border-t border-[#F2F4F7]">
-                <span className="text-[#667085]">Discount (₹):</span>
+              <div className="flex items-center justify-between text-xs py-1 border-t border-[#F1F5F9]">
+                <span className="text-[#64748B]">Discount (₹):</span>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={discountRupees}
                   onChange={(e) => setDiscountRupees(e.target.value)}
-                  className="w-24 px-2 py-1 text-right text-xs bg-white border border-[#D0D5DD] rounded-md focus:outline-none"
+                  className="w-24 px-2 py-0.5 text-right text-xs bg-white border border-[#CBD5E1] rounded focus:outline-none tabular-nums font-semibold"
                 />
               </div>
 
-              <div className="flex justify-between text-sm py-1 border-t border-[#F2F4F7]">
-                <span className="text-[#667085]">
+              <div className="flex justify-between text-xs py-1 border-t border-[#F1F5F9]">
+                <span className="text-[#64748B]">
                   GST ({settings.default_tax_rate_basis_points / 100}%):
                 </span>
-                <span className="font-semibold text-[#172033]">{formatCurrency(taxMinor)}</span>
+                <span className="font-semibold text-[#0F172A] tabular-nums">{formatCurrency(taxMinor)}</span>
               </div>
 
-              <div className="flex justify-between text-base font-bold py-2 border-t-2 border-[#E5E7EB] text-[#172033]">
+              <div className="flex justify-between text-base font-bold py-2 border-t border-[#E2E8F0] text-[#0F172A]">
                 <span>Grand Total:</span>
-                <span className="text-[#5546D7]">{formatCurrency(grandTotalMinor)}</span>
+                <span className="text-[#2563EB] tabular-nums">{formatCurrency(grandTotalMinor)}</span>
               </div>
 
               {errorMsg && (
-                <div className="p-3 bg-[#FEF3F2] border border-[#FECDCA] rounded-xl text-xs text-[#B42318] flex items-center gap-2">
+                <div className="p-2.5 bg-[#FEF2F2] border border-[#FECACA] rounded-lg text-xs text-[#DC2626] flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div className="pt-3">
+              <div className="pt-2">
                 <Button
                   type="submit"
                   variant="primary"
                   className="w-full"
-                  size="lg"
-                  leftIcon={<CheckCircle2 className="w-5 h-5" />}
+                  size="md"
+                  leftIcon={<CheckCircle2 className="w-4 h-4" />}
                 >
-                  Confirm & Create Sale
+                  Confirm & Create Order
                 </Button>
               </div>
             </CardContent>

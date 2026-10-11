@@ -71,29 +71,29 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const variantStyles = {
-    success: 'bg-[#ECFDF3] text-[#027A48] border-[#A6F4C5]',
-    warning: 'bg-[#FEF0C7] text-[#B54708] border-[#FEDF89]',
-    error: 'bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]',
-    info: 'bg-[#EFF8FF] text-[#175CD3] border-[#B2DDFF]',
-    neutral: 'bg-[#F2F4F7] text-[#344054] border-[#EAECF0]',
+    success: 'bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]',
+    warning: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]',
+    error: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]',
+    info: 'bg-[#F0F9FF] text-[#0369A1] border-[#BAE6FD]',
+    neutral: 'bg-[#F1F5F9] text-[#475569] border-[#E2E8F0]',
   };
 
   const sizeStyles = {
-    sm: 'text-[11px] px-2 py-0.5 gap-1',
-    md: 'text-xs px-2.5 py-1 gap-1.5',
+    sm: 'text-[11px] px-2 py-0.5 gap-1.5 font-medium leading-none',
+    md: 'text-[11px] px-2.5 py-1 gap-1.5 font-semibold leading-none',
   };
 
   const dotColors = {
-    success: 'bg-[#12B76A]',
-    warning: 'bg-[#F79009]',
-    error: 'bg-[#F04438]',
-    info: 'bg-[#2E90FA]',
-    neutral: 'bg-[#667085]',
+    success: 'bg-[#10B981]',
+    warning: 'bg-[#F59E0B]',
+    error: 'bg-[#EF4444]',
+    info: 'bg-[#0284C7]',
+    neutral: 'bg-[#94A3B8]',
   };
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded-full border ${variantStyles[resolvedVariant]} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center rounded-md border ${variantStyles[resolvedVariant]} ${sizeStyles[size]} ${className}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColors[resolvedVariant]}`} />
       <span>{label}</span>

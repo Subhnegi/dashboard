@@ -2,33 +2,38 @@
 
 @layer base {
   :root {
-    --bg-page: #F7F8FA;
+    --bg-page: #F8FAFC;
     --surface-card: #FFFFFF;
-    --text-primary: #172033;
-    --text-secondary: #667085;
-    --text-tertiary: #98A2B3;
-    --border-subtle: #E5E7EB;
-    --border-strong: #D0D5DD;
     
-    --brand-primary: #5546D7;
-    --brand-primary-hover: #4739BE;
-    --brand-primary-light: #EEECFB;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-tertiary: #94A3B8;
     
-    --success-bg: #ECFDF3;
-    --success-border: #A6F4C5;
-    --success-text: #027A48;
+    --border-subtle: #E2E8F0;
+    --border-strong: #CBD5E1;
     
-    --warning-bg: #FEF0C7;
-    --warning-border: #FEDF89;
-    --warning-text: #B54708;
+    /* Refined Cobalt Brand Accent */
+    --brand-primary: #2563EB;
+    --brand-primary-hover: #1D4ED8;
+    --brand-primary-light: #EFF6FF;
+    --brand-primary-border: #DBEAFE;
     
-    --error-bg: #FEF3F2;
-    --error-border: #FECDCA;
-    --error-text: #B42318;
+    /* Semantic Operational States */
+    --success-bg: #ECFDF5;
+    --success-border: #A7F3D0;
+    --success-text: #059669;
     
-    --info-bg: #EFF8FF;
-    --info-border: #B2DDFF;
-    --info-text: #175CD3;
+    --warning-bg: #FFFBEB;
+    --warning-border: #FDE68A;
+    --warning-text: #D97706;
+    
+    --error-bg: #FEF2F2;
+    --error-border: #FECACA;
+    --error-text: #DC2626;
+    
+    --info-bg: #F0F9FF;
+    --info-border: #BAE6FD;
+    --info-text: #0284C7;
 
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
@@ -57,23 +62,28 @@
   }
 }
 
-/* Custom scrollbars for data tables and panels */
+/* Tabular numerals for financial figures */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom sleek scrollbars for tables and panels */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D0D5DD;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #98A2B3;
+  background: #94A3B8;
 }
 
-/* Print Styles for Invoices and Reports */
+/* Precision Print Styles for Invoices and Reports */
 @media print {
   body {
     background: #FFFFFF !important;

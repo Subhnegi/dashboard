@@ -16,8 +16,8 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(16,24,40,0.05)] transition-all ${
-        hoverable ? 'hover:border-[#D0D5DD] hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)] cursor-pointer' : ''
+      className={`bg-white rounded-xl border border-[#E2E8F0] shadow-[0_1px_3px_0_rgba(15,23,42,0.04)] transition-all duration-150 ${
+        hoverable ? 'hover:border-[#CBD5E1] hover:shadow-[0_4px_12px_rgba(15,23,42,0.06)] cursor-pointer' : ''
       } ${className}`}
     >
       {children}
@@ -31,10 +31,10 @@ export const CardHeader: React.FC<{
   action?: React.ReactNode;
   className?: string;
 }> = ({ title, subtitle, action, className = '' }) => (
-  <div className={`px-5 py-4 border-b border-[#E5E7EB] flex items-center justify-between gap-4 ${className}`}>
+  <div className={`px-5 py-3.5 border-b border-[#E2E8F0] flex items-center justify-between gap-4 ${className}`}>
     <div>
-      <h3 className="text-base font-semibold text-[#172033] leading-snug">{title}</h3>
-      {subtitle && <p className="text-xs text-[#667085] mt-0.5">{subtitle}</p>}
+      <h3 className="text-sm font-semibold text-[#0F172A] tracking-tight leading-snug">{title}</h3>
+      {subtitle && <p className="text-xs text-[#64748B] mt-0.5 leading-normal">{subtitle}</p>}
     </div>
     {action && <div className="shrink-0">{action}</div>}
   </div>

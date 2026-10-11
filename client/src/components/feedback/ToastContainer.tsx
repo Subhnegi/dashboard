@@ -16,30 +16,30 @@ export const ToastContainer: React.FC = () => {
         return (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg bg-white transition-all animate-in slide-in-from-bottom-3 duration-200 ${
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg border shadow-lg bg-white transition-all animate-in slide-in-from-bottom-2 duration-150 ${
               isSuccess
-                ? 'border-[#A6F4C5] text-[#027A48]'
+                ? 'border-[#A7F3D0] text-[#065F46]'
                 : isError
-                ? 'border-[#FECDCA] text-[#B42318]'
-                : 'border-[#B2DDFF] text-[#175CD3]'
+                ? 'border-[#FECACA] text-[#991B1B]'
+                : 'border-[#BAE6FD] text-[#075985]'
             }`}
           >
             <div className="shrink-0 mt-0.5">
-              {isSuccess && <CheckCircle2 className="w-5 h-5 text-[#12B76A]" />}
-              {isError && <AlertCircle className="w-5 h-5 text-[#F04438]" />}
-              {!isSuccess && !isError && <Info className="w-5 h-5 text-[#2E90FA]" />}
+              {isSuccess && <CheckCircle2 className="w-4 h-4 text-[#059669]" />}
+              {isError && <AlertCircle className="w-4 h-4 text-[#DC2626]" />}
+              {!isSuccess && !isError && <Info className="w-4 h-4 text-[#0284C7]" />}
             </div>
 
-            <div className="flex-1 text-xs font-medium text-[#172033] leading-relaxed">
+            <div className="flex-1 text-xs font-medium text-[#0F172A] leading-relaxed">
               {toast.message}
             </div>
 
             <button
               onClick={() => dismissToast(toast.id)}
-              className="shrink-0 text-[#98A2B3] hover:text-[#172033] p-0.5 rounded transition-colors"
+              className="shrink-0 text-[#94A3B8] hover:text-[#0F172A] p-0.5 rounded transition-colors cursor-pointer"
               aria-label="Dismiss notification"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         );

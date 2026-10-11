@@ -63,7 +63,6 @@ export const ProductCreateView: React.FC = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    // Convert INR rupees to minor units (paise)
     const sellingPriceMinor = Math.round(parseFloat(sellingPrice) * 100);
     const costPriceMinor = Math.round(parseFloat(costPrice) * 100);
     const stockQty = parseInt(stockQuantity);
@@ -85,34 +84,34 @@ export const ProductCreateView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-4">
       {/* Back button */}
       <div>
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#667085] hover:text-[#172033] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to products list</span>
+          <span>Back to product catalog</span>
         </Link>
       </div>
 
       <Card>
         <CardHeader
-          title="Add New Inventory Product"
-          subtitle="Define pricing, initial stock balance, and reorder levels"
+          title="Create New Product"
+          subtitle="Define pricing, initial warehouse stock, and replenishment threshold"
         />
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Basic Info */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-[#667085] uppercase tracking-wider">
+            <div className="space-y-3.5">
+              <h4 className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
                 1. General Information
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Product Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -120,37 +119,37 @@ export const ProductCreateView: React.FC = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Ergonomic Bluetooth Keyboard"
-                    className={`w-full px-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                      errors.name ? 'border-red-400 focus:border-red-500' : 'border-[#D0D5DD]'
+                    className={`w-full px-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                      errors.name ? 'border-red-400 focus:border-red-500' : 'border-[#CBD5E1]'
                     }`}
                   />
-                  {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-[11px] text-red-600 mt-1">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
-                    SKU Code (Auto-generated if empty)
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    SKU Code (Auto-generated if blank)
                   </label>
                   <input
                     type="text"
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
                     placeholder="e.g. NS-KEY-009"
-                    className={`w-full px-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                      errors.sku ? 'border-red-400 focus:border-red-500' : 'border-[#D0D5DD]'
+                    className={`w-full px-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono ${
+                      errors.sku ? 'border-red-400 focus:border-red-500' : 'border-[#CBD5E1]'
                     }`}
                   />
-                  {errors.sku && <p className="text-xs text-red-600 mt-1">{errors.sku}</p>}
+                  {errors.sku && <p className="text-[11px] text-red-600 mt-1">{errors.sku}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Category
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                    className="w-full px-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="Peripherals">Peripherals</option>
                     <option value="Accessories">Accessories</option>
@@ -161,7 +160,7 @@ export const ProductCreateView: React.FC = () => {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Description (optional)
                   </label>
                   <textarea
@@ -169,25 +168,25 @@ export const ProductCreateView: React.FC = () => {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Brief description for sales notes and invoices..."
-                    className="w-full px-3.5 py-2 text-sm bg-white border border-[#D0D5DD] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30"
+                    className="w-full px-3 py-1.5 text-xs bg-white border border-[#CBD5E1] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
             </div>
 
             {/* Pricing Details */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E7EB]">
-              <h4 className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                2. Financial & Pricing (INR ₹)
+            <div className="space-y-3.5 pt-3.5 border-t border-[#E2E8F0]">
+              <h4 className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
+                2. Pricing & Margin (INR ₹)
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Selling Price (₹) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#667085]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#64748B]">
                       ₹
                     </span>
                     <input
@@ -196,24 +195,22 @@ export const ProductCreateView: React.FC = () => {
                       value={sellingPrice}
                       onChange={(e) => setSellingPrice(e.target.value)}
                       placeholder="1499.00"
-                      className={`w-full pl-8 pr-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                        errors.sellingPrice
-                          ? 'border-red-400 focus:border-red-500'
-                          : 'border-[#D0D5DD]'
+                      className={`w-full pl-7 pr-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 tabular-nums ${
+                        errors.sellingPrice ? 'border-red-400' : 'border-[#CBD5E1]'
                       }`}
                     />
                   </div>
                   {errors.sellingPrice && (
-                    <p className="text-xs text-red-600 mt-1">{errors.sellingPrice}</p>
+                    <p className="text-[11px] text-red-600 mt-1">{errors.sellingPrice}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Cost Price (₹) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#667085]">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#64748B]">
                       ₹
                     </span>
                     <input
@@ -222,27 +219,27 @@ export const ProductCreateView: React.FC = () => {
                       value={costPrice}
                       onChange={(e) => setCostPrice(e.target.value)}
                       placeholder="850.00"
-                      className={`w-full pl-8 pr-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                        errors.costPrice ? 'border-red-400 focus:border-red-500' : 'border-[#D0D5DD]'
+                      className={`w-full pl-7 pr-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 tabular-nums ${
+                        errors.costPrice ? 'border-red-400' : 'border-[#CBD5E1]'
                       }`}
                     />
                   </div>
                   {errors.costPrice && (
-                    <p className="text-xs text-red-600 mt-1">{errors.costPrice}</p>
+                    <p className="text-[11px] text-red-600 mt-1">{errors.costPrice}</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Inventory Levels */}
-            <div className="space-y-4 pt-4 border-t border-[#E5E7EB]">
-              <h4 className="text-xs font-bold text-[#667085] uppercase tracking-wider">
-                3. Stock Management
+            <div className="space-y-3.5 pt-3.5 border-t border-[#E2E8F0]">
+              <h4 className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">
+                3. Initial Inventory Levels
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Opening Stock on Hand <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -250,43 +247,41 @@ export const ProductCreateView: React.FC = () => {
                     value={stockQuantity}
                     onChange={(e) => setStockQuantity(e.target.value)}
                     placeholder="25"
-                    className={`w-full px-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                      errors.stockQuantity
-                        ? 'border-red-400 focus:border-red-500'
-                        : 'border-[#D0D5DD]'
+                    className={`w-full px-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 tabular-nums ${
+                      errors.stockQuantity ? 'border-red-400' : 'border-[#CBD5E1]'
                     }`}
                   />
                   {errors.stockQuantity && (
-                    <p className="text-xs text-red-600 mt-1">{errors.stockQuantity}</p>
+                    <p className="text-[11px] text-red-600 mt-1">{errors.stockQuantity}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#344054] mb-1">
-                    Reorder Threshold Level <span className="text-red-500">*</span>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Reorder Threshold <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     value={reorderLevel}
                     onChange={(e) => setReorderLevel(e.target.value)}
                     placeholder="5"
-                    className={`w-full px-3.5 py-2 text-sm bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5546D7]/30 ${
-                      errors.reorderLevel ? 'border-red-400 focus:border-red-500' : 'border-[#D0D5DD]'
+                    className={`w-full px-3 py-1.5 text-xs bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 tabular-nums ${
+                      errors.reorderLevel ? 'border-red-400' : 'border-[#CBD5E1]'
                     }`}
                   />
                   {errors.reorderLevel && (
-                    <p className="text-xs text-red-600 mt-1">{errors.reorderLevel}</p>
+                    <p className="text-[11px] text-red-600 mt-1">{errors.reorderLevel}</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="pt-4 border-t border-[#E5E7EB] flex items-center justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => navigate('/products')}>
+            <div className="pt-3.5 border-t border-[#E2E8F0] flex items-center justify-end gap-2.5">
+              <Button type="button" variant="outline" size="sm" onClick={() => navigate('/products')}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" leftIcon={<PackagePlus className="w-4 h-4" />}>
+              <Button type="submit" variant="primary" size="sm" leftIcon={<PackagePlus className="w-3.5 h-3.5" />}>
                 Save product
               </Button>
             </div>
