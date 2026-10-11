@@ -1,13 +1,11 @@
 import React from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import {
   Menu,
   RotateCcw,
   Info,
-  Plus,
   ChevronRight,
 } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { useDemoData } from '../../context/DemoDataContext';
 
 interface HeaderProps {
@@ -16,10 +14,9 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { setResetModalOpen, setAboutModalOpen } = useDemoData();
 
-  // Determine current route breadcrumbs and contextual CTA
+  // Determine current route breadcrumbs
   const getRouteMeta = () => {
     const path = location.pathname;
 
@@ -27,30 +24,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       return {
         title: 'Business Overview',
         crumb: 'Dashboard',
-        action: (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="w-3.5 h-3.5" />}
-            onClick={() => navigate('/sales/new')}
-          >
-            Create sale
-          </Button>
-        ),
       };
     }
     if (path === '/products') {
       return {
         title: 'Products & Inventory',
         crumb: 'Products',
-        action: (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="w-3.5 h-3.5" />}
-            onClick={() => navigate('/products/new')}
-          >
-            Add product
-          </Button>
-        ),
       };
     }
     if (path === '/products/new') {
@@ -84,15 +63,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
       return {
         title: 'Sales & Orders',
         crumb: 'Sales',
-        action: (
-          <Button
-            size="sm"
-            leftIcon={<Plus className="w-3.5 h-3.5" />}
-            onClick={() => navigate('/sales/new')}
-          >
-            New sale
-          </Button>
-        ),
       };
     }
     if (path === '/sales/new') {
@@ -184,7 +154,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         </nav>
       </div>
 
-      {/* Right: Sandbox Indicator + Contextual CTA + Utility Triggers */}
+      {/* Right: Sandbox Indicator + Utility Triggers */}
       <div className="flex items-center gap-2 sm:gap-2.5">
         {/* Subtle Sandbox Status Pill */}
         <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F1F5F9] border border-[#E2E8F0] text-[#475569] text-[11px] font-medium">
@@ -211,10 +181,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
         >
           <RotateCcw className="w-4 h-4" />
         </button>
-
-        {/* Contextual Action */}
-        {meta.action && <div className="ml-1">{meta.action}</div>}
       </div>
     </header>
   );
 };
+
