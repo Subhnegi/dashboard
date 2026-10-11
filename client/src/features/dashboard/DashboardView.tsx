@@ -220,7 +220,7 @@ export const DashboardView: React.FC = () => {
         <div>
           <button
             onClick={() => navigate('/products/new')}
-            className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+            className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
           >
             <span>+ Add New Product</span>
           </button>
@@ -247,7 +247,7 @@ export const DashboardView: React.FC = () => {
                   <button
                     key={tab}
                     onClick={() => setRevenueTab(tab)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                       revenueTab === tab
                         ? 'bg-[#5B50E6] text-white shadow-xs'
                         : 'text-[#8A90A2] hover:text-[#181A2A]'
@@ -592,7 +592,7 @@ export const DashboardView: React.FC = () => {
                           <span className={`w-2 h-2 rounded-full ${row.statusColor} ring-2 ring-white`} />
                           <button
                             onClick={() => navigate('/sales')}
-                            className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded cursor-pointer"
+                            className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded-lg cursor-pointer"
                           >
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </button>
@@ -638,7 +638,7 @@ export const DashboardView: React.FC = () => {
             {/* Header + Actions */}
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-[#181A2A]">Support Tracker</h3>
-              <button className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded border border-[#ECEEF5] cursor-pointer">
+              <button className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded-lg border border-[#ECEEF5] cursor-pointer">
                 <MoreHorizontal className="w-3.5 h-3.5" />
               </button>
             </div>

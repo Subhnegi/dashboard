@@ -180,14 +180,14 @@ export const ProductsListView: React.FC = () => {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => handleOpenAdjustModal(prod)}
-                            className="px-2 py-1 text-xs font-medium text-[#475569] hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded transition-colors cursor-pointer"
+                            className="px-2 py-1 text-xs font-medium text-[#475569] hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg transition-colors cursor-pointer"
                             title="Adjust inventory quantity"
                           >
                             Adjust
                           </button>
                           <Link
                             to={`/products/${prod.id}`}
-                            className="px-2 py-1 text-xs font-semibold text-[#2563EB] hover:bg-[#EFF6FF] rounded transition-colors"
+                            className="px-2 py-1 text-xs font-semibold text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg transition-colors"
                           >
                             Details
                           </Link>

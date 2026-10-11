@@ -62,7 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
           <h2 className="text-base font-semibold text-[#0F172A] tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="w-4 h-4" />

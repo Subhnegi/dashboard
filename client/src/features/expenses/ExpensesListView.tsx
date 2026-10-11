@@ -182,7 +182,7 @@ export const ExpensesListView: React.FC = () => {
                     <td className="px-5 py-3 text-right">
                       <button
                         onClick={() => deleteExpense(exp.id)}
-                        className="p-1 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded transition-colors cursor-pointer"
+                        className="p-1 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded-lg transition-colors cursor-pointer"
                         title="Delete expense"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

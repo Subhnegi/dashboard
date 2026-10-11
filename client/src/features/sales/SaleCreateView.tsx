@@ -328,7 +328,7 @@ export const SaleCreateView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleRemoveRow(idx)}
-                          className="p-1 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded transition-colors cursor-pointer"
+                          className="p-1 text-[#94A3B8] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded-lg transition-colors cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -375,7 +375,7 @@ export const SaleCreateView: React.FC = () => {
                       key={opt.id}
                       type="button"
                       onClick={() => setPaymentOption(opt.id as any)}
-                      className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      className={`py-1.5 px-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                         paymentOption === opt.id
                           ? 'bg-white text-[#0F172A] shadow-2xs'
                           : 'text-[#64748B] hover:text-[#0F172A]'
