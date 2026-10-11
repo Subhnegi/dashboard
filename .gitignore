@@ -6,5 +6,8 @@ build/
 *.log
 *.sqlite
 *.sqlite3
+*.sqlite-wal
+*.sqlite-shm
 *.db
+data/
 .DS_Store

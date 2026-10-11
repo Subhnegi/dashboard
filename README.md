@@ -11,7 +11,11 @@ BusinessFlow is a responsive, full-stack business management application designe
   - **Icons:** Lucide React
   - **State & Seed Persistence:** Centralized reactive data context with atomic reset, seed initialization for fictional business *Northstar Supplies*, and localStorage persistence fallback.
 - **Backend (`server/`):**
-  - Node.js + Express + TypeScript + SQLite with Zod API validation (Scheduled for Phase 2).
+  - **Runtime & Engine:** Node.js v25 + Express + TypeScript + built-in SQLite engine (`DatabaseSync`)
+  - **Architecture:** Modular monolith with strict ACID transactions (`runTransaction`), foreign keys, check constraints, and write-ahead logging (WAL).
+  - **Validation & Errors:** Zod schema validation middleware and centralized HTTP error formatting (`{ error: { code, message, details } }`).
+  - **Modules:** Products, Customers, Sales (with atomic stock deduction & cancellation reversal), Invoices & Payments, Expenses, Reports, Dashboard, Settings, and Demo Reset.
+  - **Automated Integration Tests:** Comprehensive test suite in `server/test/api.test.ts` covering 12 test suites.
 
 ---
 
@@ -24,64 +28,68 @@ BusinessFlow is a responsive, full-stack business management application designe
 
 ### Installation & Run
 
-1. **Install dependencies:**
+1. **Install all dependencies:**
    ```bash
-   cd client
    npm install
+   npm --prefix server install
+   npm --prefix client install
    ```
 
-2. **Start the local development server:**
+2. **Run Backend API server:**
    ```bash
-   npm run dev
+   npm run server
+   ```
+   Runs the Express + SQLite API at [http://localhost:4000](http://localhost:4000).
+
+3. **Run Backend API Tests:**
+   ```bash
+   npm run test
+   ```
+   Runs the end-to-end SQLite and HTTP integration test suite.
+
+4. **Seed Database:**
+   ```bash
+   npm run server:seed
+   ```
+   Initializes and seeds realistic business records for Northstar Supplies.
+
+5. **Start Frontend Client:**
+   ```bash
+   npm run client
    ```
    Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-3. **Production Build & Type Check:**
+6. **Production Build (Both Server & Client):**
    ```bash
    npm run build
    ```
 
 ---
 
-## Implemented Workflows & Features (Phase 1)
+## Implemented Workflows & Features
 
-1. **Responsive App Shell & Brand:**
-   - Typographic wordmark with geometric logo.
-   - Fixed desktop navigation sidebar (~256px) and responsive mobile slide-out navigation drawer.
-   - Dynamic header with breadcrumbs, page title, contextual primary actions, and "Demo Sandbox" indicator.
-   - Interactive dialogs for **"Reset Demo Data"** and **"About BusinessFlow"**.
-2. **Product Catalog & Stock Invariants:**
-   - Product list with search, category filtering, and status badges (`In Stock`, `Low Stock`, `Out of Stock`, `Inactive`).
-   - Dedicated "Add Product" form with real-time field validation.
-   - Product Detail view with gross margin calculation and inventory movement audit logs.
-   - In-app stock adjustment modal recording adjustment reasons (`Stock received`, `Damaged/lost`, etc.).
-3. **Customer Directory:**
-   - Search by customer name, email, or telephone.
-   - Add Customer modal.
-   - Customer profile screen with lifetime spend aggregation and sales history.
-4. **Sales & Orders Processing:**
-   - Multi-line item order creation form with automatic stock validation.
-   - Real-time line item recalculation, GST computation, and discount application.
-   - Settlement options: Full payment, partial advance payment, or unpaid invoice.
-   - Sale Detail screen with payment transaction logs and safe order cancellation with automatic stock restoration.
-5. **Invoicing & PDF Print:**
-   - Invoices list with payment status and remaining balance tracking.
-   - Print-ready invoice template with company header, bill-to details, line items breakdown, and tax details.
-   - `@media print` CSS rules automatically stripping navigation, buttons, and sidebars.
-6. **Operating Expenses:**
-   - Categorized expenses ledger (Rent, Utilities, Supplies, Software, Marketing, Other).
-   - Category total KPI cards and Add Expense modal.
-7. **Reports & Analytics:**
-   - Real-time aggregation of sales revenue, expenses, and net profit.
-   - Product sales ranking by volume and revenue.
-   - Inventory on hand asset valuation table.
-8. **Demo Data Management:**
-   - Seeded with realistic sample business data for **Northstar Supplies** (electronic accessories).
-   - "Reset demo data" action resets all state atomically.
+### Phase 1: Frontend & Visual System
+- Symphony design system with custom color tokens, modern typography, and responsive layouts.
+- Collapsible fixed sidebar with scrollable body and strict route filtering.
+- Centered compact navigation links and demo avatar with live status indicator.
+- Standardized `rounded-lg` border radius across all buttons and interactive controls.
 
----
-
-## Known Limitations & Next Phases
-
-- **Phase 1 Status:** Frontend app shell, design system, routing, responsive layouts, and demo seed data are complete and verified.
-- **Phase 2:** Connect to dedicated Node.js/Express server and SQLite database for backend persistence and ACID transactions.
+### Phase 2: Database Schema & Backend API
+- **SQLite Database Schema (`server/src/db/`):**
+  - 8 core relational tables: `products`, `customers`, `sales`, `sale_items`, `inventory_movements`, `payments`, `expenses`, `business_settings`.
+  - Foreign key constraints, indices, and exact integer paise currency columns (`selling_price_minor`, etc.).
+- **Atomic Inventory Invariants:**
+  - Sales decrement product stock atomically while recording `SALE_FULFILLMENT` inventory movements.
+  - Insufficient stock rejects checkout attempts with HTTP `422 INSUFFICIENT_STOCK`.
+  - Order cancellation restores product stock atomically and logs `SALE_CANCELLATION` reversal movements.
+- **RESTful Endpoints:**
+  - `GET /api/health` & `POST /api/demo/reset`
+  - `GET /api/products`, `POST /api/products`, `GET /api/products/:id`, `PATCH /api/products/:id`, `POST /api/products/:id/adjust-stock`, `POST /api/products/:id/deactivate`
+  - `GET /api/customers`, `POST /api/customers`, `GET /api/customers/:id`, `PATCH /api/customers/:id`, `POST /api/customers/:id/deactivate`
+  - `GET /api/sales`, `POST /api/sales`, `GET /api/sales/:id`, `POST /api/sales/:id/cancel`
+  - `GET /api/sales/:id/invoice`, `POST /api/sales/:id/payments`, `GET /api/payments/recent`
+  - `GET /api/expenses`, `POST /api/expenses`, `PATCH /api/expenses/:id`, `DELETE /api/expenses/:id` (soft-delete)
+  - `GET /api/reports/sales`, `GET /api/reports/expenses`, `GET /api/reports/inventory`
+  - `GET /api/dashboard?range=30d`
+  - `GET /api/settings`, `PATCH /api/settings`
+- **Automated Verification:** 12/12 integration tests passing covering transactions, stock invariants, unique constraints, and SQL aggregations.
