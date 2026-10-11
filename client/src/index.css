@@ -2,21 +2,21 @@
 
 @layer base {
   :root {
-    --bg-page: #F8FAFC;
+    --bg-page: #F7F8FC;
     --surface-card: #FFFFFF;
     
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --text-tertiary: #94A3B8;
+    --text-primary: #181A2A;
+    --text-secondary: #5E6478;
+    --text-tertiary: #8A90A2;
     
-    --border-subtle: #E2E8F0;
-    --border-strong: #CBD5E1;
+    --border-subtle: #ECEEF5;
+    --border-strong: #D5D9E6;
     
-    /* Refined Cobalt Brand Accent */
-    --brand-primary: #2563EB;
-    --brand-primary-hover: #1D4ED8;
-    --brand-primary-light: #EFF6FF;
-    --brand-primary-border: #DBEAFE;
+    /* Symphony Royal Indigo Accent */
+    --brand-primary: #5B50E6;
+    --brand-primary-hover: #4E44D4;
+    --brand-primary-light: #EEF2FF;
+    --brand-primary-border: #C7D2FE;
     
     /* Semantic Operational States */
     --success-bg: #ECFDF5;
