@@ -8,6 +8,7 @@ import type {
   InventoryMovement,
   Payment,
 } from '../types';
+import * as api from '../lib/api-client';
 import {
   INITIAL_PRODUCTS,
   INITIAL_CUSTOMERS,
@@ -37,10 +38,12 @@ interface DemoDataContextType {
   setAboutModalOpen: (open: boolean) => void;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   dismissToast: (id: string) => void;
-  resetDemoData: () => void;
-  addProduct: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => Product;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  adjustProductStock: (id: string, delta: number, reason: string, note?: string) => void;
+  resetDemoData: () => Promise<void>;
+  addProduct: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => Promise<Product>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  adjustProductStock: (id: string, delta: number, reason: string, note?: string) => Promise<void>;
+  deactivateProduct: (id: string) => Promise<void>;
+  refreshProducts: () => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Customer;
   updateCustomer: (id: string, updates: Partial<Customer>) => void;
   addSale: (newSale: Omit<Sale, 'id' | 'sale_number' | 'created_at' | 'updated_at'>) => Sale;
@@ -115,6 +118,68 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem(`${STORAGE_PREFIX}movements`, JSON.stringify(movements));
   }, [movements]);
 
+  // Initial load from backend API
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFromBackend() {
+      try {
+        const [backendProducts, backendCustomers, backendSales, backendExpenses, backendSettings] =
+          await Promise.all([
+            api.getProducts().catch(() => null),
+            api.getCustomers().catch(() => null),
+            api.getSales().catch(() => null),
+            api.getExpenses().catch(() => null),
+            api.getSettings().catch(() => null),
+          ]);
+
+        if (isMounted) {
+          if (backendProducts && backendProducts.length > 0) {
+            setProducts(
+              backendProducts.map((p) => ({
+                ...p,
+                is_active: Boolean(p.is_active),
+              }))
+            );
+          }
+          if (backendCustomers && backendCustomers.length > 0) {
+            setCustomers(
+              backendCustomers.map((c) => ({
+                ...c,
+                is_active: Boolean(c.is_active),
+              }))
+            );
+          }
+          if (backendSales && backendSales.length > 0) {
+            setSales(backendSales);
+          }
+          if (backendExpenses && backendExpenses.length > 0) {
+            setExpenses(backendExpenses);
+          }
+          if (backendSettings) {
+            setSettings(backendSettings);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend synchronization warning:', err);
+      }
+    }
+    loadFromBackend();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const refreshProducts = async () => {
+    try {
+      const data = await api.getProducts();
+      if (data) {
+        setProducts(data.map((p) => ({ ...p, is_active: Boolean(p.is_active) })));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -128,75 +193,147 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Reset demo data atomically
-  const resetDemoData = () => {
-    setProducts(INITIAL_PRODUCTS);
-    setCustomers(INITIAL_CUSTOMERS);
-    setSales(INITIAL_SALES);
-    setExpenses(INITIAL_EXPENSES);
-    setSettings(INITIAL_BUSINESS_SETTINGS);
-    setMovements(INITIAL_INVENTORY_MOVEMENTS);
+  const resetDemoData = async () => {
+    try {
+      await api.resetDemoDatabase();
+      const [backendProducts, backendCustomers, backendSales, backendExpenses, backendSettings] =
+        await Promise.all([
+          api.getProducts(),
+          api.getCustomers(),
+          api.getSales(),
+          api.getExpenses(),
+          api.getSettings(),
+        ]);
+      setProducts(backendProducts.map((p) => ({ ...p, is_active: Boolean(p.is_active) })));
+      setCustomers(backendCustomers.map((c) => ({ ...c, is_active: Boolean(c.is_active) })));
+      setSales(backendSales);
+      setExpenses(backendExpenses);
+      setSettings(backendSettings);
+    } catch {
+      setProducts(INITIAL_PRODUCTS);
+      setCustomers(INITIAL_CUSTOMERS);
+      setSales(INITIAL_SALES);
+      setExpenses(INITIAL_EXPENSES);
+      setSettings(INITIAL_BUSINESS_SETTINGS);
+      setMovements(INITIAL_INVENTORY_MOVEMENTS);
+    }
     localStorage.clear();
     setResetModalOpen(false);
     showToast('Demo workspace restored to initial seed state.', 'success');
   };
 
-  const addProduct = (prodData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Product => {
-    const newProd: Product = {
-      ...prodData,
-      id: `prod_${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setProducts((prev) => [newProd, ...prev]);
+  const addProduct = async (
+    prodData: Omit<Product, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Product> => {
+    try {
+      const created = await api.createProduct({
+        name: prodData.name,
+        sku: prodData.sku,
+        category: prodData.category,
+        description: prodData.description,
+        selling_price_minor: prodData.selling_price_minor,
+        cost_price_minor: prodData.cost_price_minor,
+        stock_quantity: prodData.stock_quantity,
+        reorder_level: prodData.reorder_level,
+      });
+      const mapped: Product = { ...created, is_active: Boolean(created.is_active) };
+      setProducts((prev) => [mapped, ...prev.filter((p) => p.id !== mapped.id)]);
 
-    // Record opening balance movement if initial stock > 0
-    if (newProd.stock_quantity > 0) {
-      const movement: InventoryMovement = {
-        id: `mov_${Date.now()}`,
-        product_id: newProd.id,
-        movement_type: 'OPENING_BALANCE',
-        quantity_delta: newProd.stock_quantity,
-        reason: 'Initial stock on product creation',
+      if (mapped.stock_quantity > 0) {
+        const mov: InventoryMovement = {
+          id: `mov_${Date.now()}`,
+          product_id: mapped.id,
+          movement_type: 'OPENING_BALANCE',
+          quantity_delta: mapped.stock_quantity,
+          reason: 'Initial stock on product creation',
+          created_at: mapped.created_at,
+        };
+        setMovements((prev) => [mov, ...prev]);
+      }
+
+      showToast(`Product "${mapped.name}" created successfully.`);
+      return mapped;
+    } catch (err: any) {
+      // Local fallback if API fails
+      const newProd: Product = {
+        ...prodData,
+        id: `prod_${Date.now()}`,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
-      setMovements((prev) => [movement, ...prev]);
+      setProducts((prev) => [newProd, ...prev]);
+      showToast(`Product "${newProd.name}" saved.`);
+      return newProd;
     }
-
-    showToast(`Product "${newProd.name}" created successfully.`);
-    return newProd;
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
-      )
-    );
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    try {
+      const updated = await api.updateProduct(id, updates);
+      const mapped: Product = { ...updated, is_active: Boolean(updated.is_active) };
+      setProducts((prev) => prev.map((p) => (p.id === id ? mapped : p)));
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p
+        )
+      );
+    }
     showToast('Product updated successfully.');
   };
 
-  const adjustProductStock = (id: string, delta: number, reason: string, note?: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === id) {
-          const updatedQty = Math.max(0, p.stock_quantity + delta);
-          return { ...p, stock_quantity: updatedQty, updated_at: new Date().toISOString() };
-        }
-        return p;
-      })
-    );
+  const adjustProductStock = async (
+    id: string,
+    delta: number,
+    reason: string,
+    note?: string
+  ) => {
+    try {
+      const res = await api.adjustProductStock(id, { delta, reason, note });
+      const mapped: Product = { ...res.product, is_active: Boolean(res.product.is_active) };
+      setProducts((prev) => prev.map((p) => (p.id === id ? mapped : p)));
 
-    const movement: InventoryMovement = {
-      id: `mov_${Date.now()}`,
-      product_id: id,
-      movement_type: delta >= 0 ? 'STOCK_RECEIVED' : 'DAMAGED_LOST',
-      quantity_delta: delta,
-      reason,
-      note,
-      created_at: new Date().toISOString(),
-    };
-    setMovements((prev) => [movement, ...prev]);
+      // Fetch movement history for this product
+      const detail = await api.getProduct(id).catch(() => null);
+      if (detail?.movements) {
+        setMovements((prev) => [
+          ...detail.movements.map((m: any) => ({
+            id: m.id,
+            product_id: m.product_id,
+            movement_type: m.movement_type,
+            quantity_delta: m.quantity_delta,
+            reason: m.reason,
+            note: m.note,
+            created_at: m.created_at,
+          })),
+          ...prev.filter((m) => m.product_id !== id),
+        ]);
+      }
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === id) {
+            const updatedQty = Math.max(0, p.stock_quantity + delta);
+            return { ...p, stock_quantity: updatedQty, updated_at: new Date().toISOString() };
+          }
+          return p;
+        })
+      );
+    }
     showToast(`Stock adjusted by ${delta > 0 ? `+${delta}` : delta} units.`);
+  };
+
+  const deactivateProduct = async (id: string) => {
+    try {
+      const res = await api.deactivateProduct(id);
+      const mapped: Product = { ...res, is_active: Boolean(res.is_active) };
+      setProducts((prev) => prev.map((p) => (p.id === id ? mapped : p)));
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, is_active: false } : p))
+      );
+    }
+    showToast('Product deactivated.');
   };
 
   const addCustomer = (custData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Customer => {
@@ -410,6 +547,8 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addProduct,
         updateProduct,
         adjustProductStock,
+        deactivateProduct,
+        refreshProducts,
         addCustomer,
         updateCustomer,
         addSale,

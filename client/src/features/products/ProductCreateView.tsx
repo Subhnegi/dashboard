@@ -18,6 +18,13 @@ export const ProductCreateView: React.FC = () => {
   const [stockQuantity, setStockQuantity] = useState<string>('10');
   const [reorderLevel, setReorderLevel] = useState<string>('5');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Live profit calculation
+  const parsedPrice = parseFloat(sellingPrice) || 0;
+  const parsedCost = parseFloat(costPrice) || 0;
+  const unitProfit = parsedPrice - parsedCost;
+  const marginPct = parsedPrice > 0 ? ((unitProfit / parsedPrice) * 100).toFixed(1) : '0.0';
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -28,7 +35,7 @@ export const ProductCreateView: React.FC = () => {
 
     if (sku.trim()) {
       const duplicate = products.some(
-        (p) => p.sku.toLowerCase() === sku.trim().toLowerCase()
+        (p) => p.sku && p.sku.toLowerCase() === sku.trim().toLowerCase()
       );
       if (duplicate) {
         errs.sku = 'SKU already exists in the catalog';
@@ -59,28 +66,37 @@ export const ProductCreateView: React.FC = () => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    const sellingPriceMinor = Math.round(parseFloat(sellingPrice) * 100);
-    const costPriceMinor = Math.round(parseFloat(costPrice) * 100);
-    const stockQty = parseInt(stockQuantity);
-    const reorderLvl = parseInt(reorderLevel);
+    setIsSubmitting(true);
+    try {
+      const sellingPriceMinor = Math.round(parseFloat(sellingPrice) * 100);
+      const costPriceMinor = Math.round(parseFloat(costPrice) * 100);
+      const stockQty = parseInt(stockQuantity);
+      const reorderLvl = parseInt(reorderLevel);
 
-    const created = addProduct({
-      name: name.trim(),
-      sku: sku.trim() || `NS-PROD-${Date.now().toString().slice(-4)}`,
-      category: category.trim(),
-      description: description.trim() || undefined,
-      selling_price_minor: sellingPriceMinor,
-      cost_price_minor: costPriceMinor,
-      stock_quantity: stockQty,
-      reorder_level: reorderLvl,
-      is_active: true,
-    });
+      const created = await addProduct({
+        name: name.trim(),
+        sku: sku.trim() || `NS-PROD-${Date.now().toString().slice(-4)}`,
+        category: category.trim(),
+        description: description.trim() || undefined,
+        selling_price_minor: sellingPriceMinor,
+        cost_price_minor: costPriceMinor,
+        stock_quantity: stockQty,
+        reorder_level: reorderLvl,
+        is_active: true,
+      });
 
-    navigate(`/products/${created.id}`);
+      navigate(`/products/${created.id}`);
+    } catch (err: any) {
+      if (err.status === 409 || err.code === 'CONFLICT') {
+        setErrors((prev) => ({ ...prev, sku: err.message || 'SKU already exists' }));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -229,6 +245,22 @@ export const ProductCreateView: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* Live Gross Margin Preview Card */}
+              {parsedPrice > 0 && (
+                <div className="p-3 bg-[#EEF2FF] border border-[#C7D2FE] rounded-lg flex items-center justify-between text-xs text-[#1E1B4B]">
+                  <div>
+                    <span className="font-semibold text-[#5B50E6]">Estimated Profit Margin: </span>
+                    <span className="font-bold">{marginPct}%</span>
+                  </div>
+                  <div>
+                    <span className="text-[#64748B]">Per-unit profit: </span>
+                    <strong className="text-[#0F172A] tabular-nums">
+                      {unitProfit >= 0 ? `+₹${unitProfit.toFixed(2)}` : `-₹${Math.abs(unitProfit).toFixed(2)}`}
+                    </strong>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Inventory Levels */}
@@ -281,7 +313,13 @@ export const ProductCreateView: React.FC = () => {
               <Button type="button" variant="outline" size="sm" onClick={() => navigate('/products')}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="sm" leftIcon={<PackagePlus className="w-3.5 h-3.5" />}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isSubmitting}
+                leftIcon={<PackagePlus className="w-3.5 h-3.5" />}
+              >
                 Save product
               </Button>
             </div>
