@@ -25,6 +25,7 @@ export interface Customer {
   is_active: boolean;
   total_sales_count?: number;
   lifetime_value_minor?: number;
+  outstanding_balance_minor?: number;
   created_at: string;
   updated_at: string;
 }

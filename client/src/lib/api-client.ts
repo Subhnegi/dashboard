@@ -140,6 +140,28 @@ export async function createCustomer(payload: {
   return data.customer;
 }
 
+export async function updateCustomer(id: string, updates: Partial<Customer>): Promise<Customer> {
+  const data = await request<{ customer: Customer }>(`/api/customers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return data.customer;
+}
+
+export async function deactivateCustomer(id: string): Promise<Customer> {
+  const data = await request<{ customer: Customer }>(`/api/customers/${id}/deactivate`, {
+    method: 'POST',
+  });
+  return data.customer;
+}
+
+export async function reactivateCustomer(id: string): Promise<Customer> {
+  const data = await request<{ customer: Customer }>(`/api/customers/${id}/reactivate`, {
+    method: 'POST',
+  });
+  return data.customer;
+}
+
 // 3. Sales API
 export async function getSales(params?: {
   search?: string;
@@ -234,6 +256,14 @@ export async function createExpense(payload: {
   const data = await request<{ expense: Expense }>('/api/expenses', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+  return data.expense;
+}
+
+export async function updateExpense(id: string, updates: Partial<Expense>): Promise<Expense> {
+  const data = await request<{ expense: Expense }>(`/api/expenses/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
   });
   return data.expense;
 }

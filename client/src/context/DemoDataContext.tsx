@@ -44,13 +44,18 @@ interface DemoDataContextType {
   adjustProductStock: (id: string, delta: number, reason: string, note?: string) => Promise<void>;
   deactivateProduct: (id: string) => Promise<void>;
   refreshProducts: () => Promise<void>;
-  addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Customer;
-  updateCustomer: (id: string, updates: Partial<Customer>) => void;
+  addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deactivateCustomer: (id: string) => Promise<void>;
+  reactivateCustomer: (id: string) => Promise<void>;
+  refreshCustomers: () => Promise<void>;
   addSale: (newSale: Omit<Sale, 'id' | 'sale_number' | 'created_at' | 'updated_at'>) => Sale;
   cancelSale: (id: string, reason: string) => void;
   addPayment: (saleId: string, payment: Omit<Payment, 'id' | 'sale_id' | 'created_at'>) => void;
-  addExpense: (expense: Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>) => Expense;
-  deleteExpense: (id: string) => void;
+  addExpense: (expense: Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>) => Promise<Expense>;
+  updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
+  deleteExpense: (id: string) => Promise<void>;
+  refreshExpenses: () => Promise<void>;
   updateSettings: (updates: Partial<BusinessSettings>) => void;
 }
 
@@ -336,27 +341,91 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast('Product deactivated.');
   };
 
-  const addCustomer = (custData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Customer => {
-    const newCust: Customer = {
-      ...custData,
-      id: `cust_${Date.now()}`,
-      total_sales_count: 0,
-      lifetime_value_minor: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setCustomers((prev) => [newCust, ...prev]);
-    showToast(`Customer "${newCust.name}" added successfully.`);
-    return newCust;
+  const addCustomer = async (
+    custData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Customer> => {
+    try {
+      const created = await api.createCustomer({
+        name: custData.name,
+        phone: custData.phone || null,
+        email: custData.email || null,
+        billing_address: custData.billing_address || null,
+        notes: custData.notes || null,
+      });
+      const mapped: Customer = {
+        ...created,
+        is_active: Boolean(created.is_active),
+      };
+      setCustomers((prev) => [mapped, ...prev.filter((c) => c.id !== mapped.id)]);
+      showToast(`Customer "${mapped.name}" added successfully.`);
+      return mapped;
+    } catch {
+      const newCust: Customer = {
+        ...custData,
+        id: `cust_${Date.now()}`,
+        total_sales_count: 0,
+        lifetime_value_minor: 0,
+        outstanding_balance_minor: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setCustomers((prev) => [newCust, ...prev]);
+      showToast(`Customer "${newCust.name}" added successfully.`);
+      return newCust;
+    }
   };
 
-  const updateCustomer = (id: string, updates: Partial<Customer>) => {
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, ...updates, updated_at: new Date().toISOString() } : c
-      )
-    );
+  const updateCustomer = async (id: string, updates: Partial<Customer>) => {
+    try {
+      const updated = await api.updateCustomer(id, updates);
+      const mapped: Customer = {
+        ...updated,
+        is_active: Boolean(updated.is_active),
+      };
+      setCustomers((prev) => prev.map((c) => (c.id === id ? mapped : c)));
+    } catch {
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, ...updates, updated_at: new Date().toISOString() } : c
+        )
+      );
+    }
     showToast('Customer record updated.');
+  };
+
+  const deactivateCustomer = async (id: string) => {
+    try {
+      const updated = await api.deactivateCustomer(id);
+      const mapped: Customer = { ...updated, is_active: false };
+      setCustomers((prev) => prev.map((c) => (c.id === id ? mapped : c)));
+    } catch {
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, is_active: false } : c))
+      );
+    }
+    showToast('Customer account deactivated.');
+  };
+
+  const reactivateCustomer = async (id: string) => {
+    try {
+      const updated = await api.reactivateCustomer(id);
+      const mapped: Customer = { ...updated, is_active: true };
+      setCustomers((prev) => prev.map((c) => (c.id === id ? mapped : c)));
+    } catch {
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, is_active: true } : c))
+      );
+    }
+    showToast('Customer account reactivated.');
+  };
+
+  const refreshCustomers = async () => {
+    try {
+      const data = await api.getCustomers();
+      if (data) {
+        setCustomers(data.map((c) => ({ ...c, is_active: Boolean(c.is_active) })));
+      }
+    } catch {}
   };
 
   const addSale = (saleData: Omit<Sale, 'id' | 'sale_number' | 'created_at' | 'updated_at'>): Sale => {
@@ -494,28 +563,79 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     showToast('Payment recorded successfully.');
   };
 
-  const addExpense = (
+  const addExpense = async (
     expenseData: Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>
-  ): Expense => {
-    const newExp: Expense = {
-      ...expenseData,
-      id: `exp_${Date.now()}`,
-      is_deleted: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setExpenses((prev) => [newExp, ...prev]);
-    showToast('Expense recorded successfully.');
-    return newExp;
+  ): Promise<Expense> => {
+    try {
+      const created = await api.createExpense({
+        description: expenseData.description,
+        category: expenseData.category,
+        amount_minor: expenseData.amount_minor,
+        expense_date: expenseData.expense_date,
+        payment_method: expenseData.payment_method || null,
+        vendor: expenseData.vendor || null,
+        notes: expenseData.notes || null,
+      });
+      const mapped: Expense = {
+        ...created,
+        is_deleted: false,
+      };
+      setExpenses((prev) => [mapped, ...prev.filter((e) => e.id !== mapped.id)]);
+      showToast('Expense recorded successfully.');
+      return mapped;
+    } catch {
+      const newExp: Expense = {
+        ...expenseData,
+        id: `exp_${Date.now()}`,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setExpenses((prev) => [newExp, ...prev]);
+      showToast('Expense recorded successfully.');
+      return newExp;
+    }
   };
 
-  const deleteExpense = (id: string) => {
-    setExpenses((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, is_deleted: true, updated_at: new Date().toISOString() } : e
-      )
-    );
-    showToast('Expense removed.');
+  const updateExpense = async (id: string, updates: Partial<Expense>) => {
+    try {
+      const updated = await api.updateExpense(id, updates);
+      setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    } catch {
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, ...updates, updated_at: new Date().toISOString() } : e
+        )
+      );
+    }
+    showToast('Expense voucher updated.');
+  };
+
+  const deleteExpense = async (id: string) => {
+    try {
+      await api.deleteExpense(id);
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, is_deleted: true, updated_at: new Date().toISOString() } : e
+        )
+      );
+    } catch {
+      setExpenses((prev) =>
+        prev.map((e) =>
+          e.id === id ? { ...e, is_deleted: true, updated_at: new Date().toISOString() } : e
+        )
+      );
+    }
+    showToast('Expense voucher removed.');
+  };
+
+  const refreshExpenses = async () => {
+    try {
+      const data = await api.getExpenses();
+      if (data) {
+        setExpenses(data);
+      }
+    } catch {}
   };
 
   const updateSettings = (updates: Partial<BusinessSettings>) => {
@@ -551,11 +671,16 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         refreshProducts,
         addCustomer,
         updateCustomer,
+        deactivateCustomer,
+        reactivateCustomer,
+        refreshCustomers,
         addSale,
         cancelSale,
         addPayment,
         addExpense,
+        updateExpense,
         deleteExpense,
+        refreshExpenses,
         updateSettings,
       }}
     >

@@ -27,22 +27,36 @@ const updateCustomerSchema = z.object({
 customersRouter.get('/', (req: Request, res: Response) => {
   const db = getDb();
   const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
-  const isActive = req.query.is_active !== undefined ? Number(req.query.is_active) : 1;
+  const isActive = req.query.is_active !== undefined ? Number(req.query.is_active) : undefined;
 
-  let query = `SELECT * FROM customers WHERE 1=1`;
+  let query = `
+    SELECT
+      c.*,
+      COUNT(DISTINCT CASE WHEN s.status = 'CONFIRMED' THEN s.id END) AS total_sales_count,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN s.total_minor ELSE 0 END), 0) AS lifetime_value_minor,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN MAX(0, s.total_minor - COALESCE(pmt.total_paid, 0)) ELSE 0 END), 0) AS outstanding_balance_minor
+    FROM customers c
+    LEFT JOIN sales s ON s.customer_id = c.id
+    LEFT JOIN (
+      SELECT sale_id, SUM(amount_minor) AS total_paid
+      FROM payments
+      GROUP BY sale_id
+    ) pmt ON pmt.sale_id = s.id
+    WHERE 1=1
+  `;
   const params: unknown[] = [];
 
   if (isActive === 0 || isActive === 1) {
-    query += ` AND is_active = ?`;
+    query += ` AND c.is_active = ?`;
     params.push(isActive);
   }
 
   if (search) {
-    query += ` AND (LOWER(name) LIKE ? OR LOWER(phone) LIKE ? OR LOWER(email) LIKE ?)`;
+    query += ` AND (LOWER(c.name) LIKE ? OR LOWER(COALESCE(c.phone, '')) LIKE ? OR LOWER(COALESCE(c.email, '')) LIKE ?)`;
     params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
-  query += ` ORDER BY name ASC`;
+  query += ` GROUP BY c.id ORDER BY c.name ASC`;
 
   const customers = db.prepare(query).all(...(params as any[]));
   res.json({ customers });
@@ -70,22 +84,56 @@ customersRouter.post('/', validateBody(createCustomerSchema), (req: Request, res
     now
   );
 
-  const created = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(id);
+  const created = db.prepare(`
+    SELECT
+      c.*,
+      0 AS total_sales_count,
+      0 AS lifetime_value_minor,
+      0 AS outstanding_balance_minor
+    FROM customers c
+    WHERE c.id = ?
+  `).get(id);
+
   res.status(201).json({ customer: created });
 });
 
 // GET /api/customers/:id
 customersRouter.get('/:id', (req: Request, res: Response) => {
   const db = getDb();
-  const customer = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(req.params.id);
+  const customer = db.prepare(`
+    SELECT
+      c.*,
+      COUNT(DISTINCT CASE WHEN s.status = 'CONFIRMED' THEN s.id END) AS total_sales_count,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN s.total_minor ELSE 0 END), 0) AS lifetime_value_minor,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN MAX(0, s.total_minor - COALESCE(pmt.total_paid, 0)) ELSE 0 END), 0) AS outstanding_balance_minor
+    FROM customers c
+    LEFT JOIN sales s ON s.customer_id = c.id
+    LEFT JOIN (
+      SELECT sale_id, SUM(amount_minor) AS total_paid
+      FROM payments
+      GROUP BY sale_id
+    ) pmt ON pmt.sale_id = s.id
+    WHERE c.id = ?
+    GROUP BY c.id
+  `).get(req.params.id) as any;
+
   if (!customer) {
     throw new NotFoundError(`Customer not found`);
   }
 
   const sales = db.prepare(`
-    SELECT * FROM sales
-    WHERE customer_id = ?
-    ORDER BY sale_date DESC
+    SELECT
+      s.*,
+      COALESCE(pmt.total_paid, 0) AS amount_paid_minor,
+      MAX(0, s.total_minor - COALESCE(pmt.total_paid, 0)) AS balance_due_minor
+    FROM sales s
+    LEFT JOIN (
+      SELECT sale_id, SUM(amount_minor) AS total_paid
+      FROM payments
+      GROUP BY sale_id
+    ) pmt ON pmt.sale_id = s.id
+    WHERE s.customer_id = ?
+    ORDER BY s.sale_date DESC
     LIMIT 50
   `).all(req.params.id);
 
@@ -128,7 +176,23 @@ customersRouter.patch('/:id', validateBody(updateCustomerSchema), (req: Request,
     req.params.id
   );
 
-  const updated = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(req.params.id);
+  const updated = db.prepare(`
+    SELECT
+      c.*,
+      COUNT(DISTINCT CASE WHEN s.status = 'CONFIRMED' THEN s.id END) AS total_sales_count,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN s.total_minor ELSE 0 END), 0) AS lifetime_value_minor,
+      COALESCE(SUM(CASE WHEN s.status = 'CONFIRMED' THEN MAX(0, s.total_minor - COALESCE(pmt.total_paid, 0)) ELSE 0 END), 0) AS outstanding_balance_minor
+    FROM customers c
+    LEFT JOIN sales s ON s.customer_id = c.id
+    LEFT JOIN (
+      SELECT sale_id, SUM(amount_minor) AS total_paid
+      FROM payments
+      GROUP BY sale_id
+    ) pmt ON pmt.sale_id = s.id
+    WHERE c.id = ?
+    GROUP BY c.id
+  `).get(req.params.id);
+
   res.json({ customer: updated });
 });
 
@@ -142,6 +206,20 @@ customersRouter.post('/:id/deactivate', (req: Request, res: Response) => {
 
   const now = new Date().toISOString();
   db.prepare(`UPDATE customers SET is_active = 0, updated_at = ? WHERE id = ?`).run(now, req.params.id);
+  const updated = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(req.params.id);
+  res.json({ customer: updated });
+});
+
+// POST /api/customers/:id/reactivate
+customersRouter.post('/:id/reactivate', (req: Request, res: Response) => {
+  const db = getDb();
+  const existing = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(req.params.id);
+  if (!existing) {
+    throw new NotFoundError(`Customer not found`);
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(`UPDATE customers SET is_active = 1, updated_at = ? WHERE id = ?`).run(now, req.params.id);
   const updated = db.prepare(`SELECT * FROM customers WHERE id = ?`).get(req.params.id);
   res.json({ customer: updated });
 });
