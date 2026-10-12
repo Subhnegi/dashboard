@@ -39,6 +39,8 @@ salesRouter.get('/', (req: Request, res: Response) => {
   const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
   const status = typeof req.query.status === 'string' ? req.query.status.trim().toUpperCase() : '';
   const paymentFilter = typeof req.query.payment_status === 'string' ? req.query.payment_status.trim().toUpperCase() : '';
+  const from = typeof req.query.from === 'string' ? req.query.from.trim() : '';
+  const to = typeof req.query.to === 'string' ? req.query.to.trim() : '';
 
   let query = `
     SELECT 
@@ -60,9 +62,34 @@ salesRouter.get('/', (req: Request, res: Response) => {
     params.push(`%${search}%`, `%${search}%`);
   }
 
+  if (from) {
+    query += ` AND s.sale_date >= ?`;
+    params.push(from);
+  }
+
+  if (to) {
+    query += ` AND s.sale_date <= ?`;
+    params.push(to);
+  }
+
   query += ` GROUP BY s.id ORDER BY s.sale_date DESC`;
 
   const rows = db.prepare(query).all(...(params as any[])) as any[];
+
+  // Fetch all items and payments for sales to populate full objects
+  const allItems = db.prepare(`SELECT * FROM sale_items`).all() as any[];
+  const itemsBySaleId: Record<string, any[]> = {};
+  for (const item of allItems) {
+    if (!itemsBySaleId[item.sale_id]) itemsBySaleId[item.sale_id] = [];
+    itemsBySaleId[item.sale_id].push(item);
+  }
+
+  const allPayments = db.prepare(`SELECT * FROM payments ORDER BY payment_date ASC`).all() as any[];
+  const paymentsBySaleId: Record<string, any[]> = {};
+  for (const pay of allPayments) {
+    if (!paymentsBySaleId[pay.sale_id]) paymentsBySaleId[pay.sale_id] = [];
+    paymentsBySaleId[pay.sale_id].push(pay);
+  }
 
   const salesWithStatus = rows.map((s) => {
     const paid = Number(s.amount_paid_minor);
@@ -80,6 +107,8 @@ salesRouter.get('/', (req: Request, res: Response) => {
 
     return {
       ...s,
+      items: itemsBySaleId[s.id] || [],
+      payments: paymentsBySaleId[s.id] || [],
       amount_paid_minor: paid,
       balance_due_minor: balance,
       payment_status: derivedPaymentStatus,

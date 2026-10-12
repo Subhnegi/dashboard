@@ -49,9 +49,28 @@ interface DemoDataContextType {
   deactivateCustomer: (id: string) => Promise<void>;
   reactivateCustomer: (id: string) => Promise<void>;
   refreshCustomers: () => Promise<void>;
-  addSale: (newSale: Omit<Sale, 'id' | 'sale_number' | 'created_at' | 'updated_at'>) => Sale;
-  cancelSale: (id: string, reason: string) => void;
-  addPayment: (saleId: string, payment: Omit<Payment, 'id' | 'sale_id' | 'created_at'>) => void;
+  addSale: (payload: {
+    customer_id?: string | null;
+    customer_name: string;
+    customer_contact?: string | null;
+    sale_date?: string;
+    discount_minor?: number;
+    tax_minor?: number;
+    notes?: string | null;
+    items: Array<{ product_id: string; quantity: number; unit_price_minor?: number }>;
+    initial_payment?: {
+      amount_minor: number;
+      method: string;
+      reference?: string | null;
+      note?: string | null;
+    };
+  }) => Promise<Sale>;
+  cancelSale: (id: string, reason: string) => Promise<void>;
+  addPayment: (
+    saleId: string,
+    payment: { amount_minor: number; method: string; reference?: string | null; note?: string | null }
+  ) => Promise<Payment | undefined>;
+  refreshSales: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'created_at' | 'updated_at' | 'is_deleted'>) => Promise<Expense>;
   updateExpense: (id: string, updates: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
@@ -428,139 +447,108 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch {}
   };
 
-  const addSale = (saleData: Omit<Sale, 'id' | 'sale_number' | 'created_at' | 'updated_at'>): Sale => {
-    const saleNum = `${settings.invoice_prefix}${(sales.length + 101).toString().padStart(5, '0')}`;
-    const newSale: Sale = {
-      ...saleData,
-      id: `sale_${Date.now()}`,
-      sale_number: saleNum,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Atomically decrement stock and record movements
-    setProducts((prevProducts) =>
-      prevProducts.map((p) => {
-        const lineItem = newSale.items.find((item) => item.product_id === p.id);
-        if (lineItem) {
-          return {
-            ...p,
-            stock_quantity: Math.max(0, p.stock_quantity - lineItem.quantity),
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return p;
-      })
-    );
-
-    const newMovements: InventoryMovement[] = newSale.items.map((item) => ({
-      id: `mov_${Date.now()}_${item.id}`,
-      product_id: item.product_id,
-      movement_type: 'SALE',
-      quantity_delta: -item.quantity,
-      reason: `Fulfilled Sale ${saleNum}`,
-      reference_type: 'sale',
-      reference_id: newSale.id,
-      created_at: new Date().toISOString(),
-    }));
-
-    setMovements((prev) => [...newMovements, ...prev]);
-    setSales((prev) => [newSale, ...prev]);
-
-    // Update customer stats
-    if (newSale.customer_id) {
-      setCustomers((prev) =>
-        prev.map((c) => {
-          if (c.id === newSale.customer_id) {
-            return {
-              ...c,
-              total_sales_count: (c.total_sales_count || 0) + 1,
-              lifetime_value_minor: (c.lifetime_value_minor || 0) + newSale.total_minor,
-            };
-          }
-          return c;
-        })
-      );
-    }
-
-    showToast(`Order ${saleNum} created successfully.`);
-    return newSale;
+  const refreshSales = async () => {
+    try {
+      const data = await api.getSales();
+      if (data) {
+        setSales(data);
+      }
+    } catch {}
   };
 
-  const cancelSale = (id: string, reason: string) => {
+  const addSale = async (payload: {
+    customer_id?: string | null;
+    customer_name: string;
+    customer_contact?: string | null;
+    sale_date?: string;
+    discount_minor?: number;
+    tax_minor?: number;
+    notes?: string | null;
+    items: Array<{ product_id: string; quantity: number; unit_price_minor?: number }>;
+    initial_payment?: {
+      amount_minor: number;
+      method: string;
+      reference?: string | null;
+      note?: string | null;
+    };
+  }): Promise<Sale> => {
+    try {
+      const res = await api.createSale(payload);
+      const createdSale: Sale = {
+        ...res.sale,
+        items: res.items || [],
+        payments: res.payments || [],
+      };
+      setSales((prev) => [createdSale, ...prev.filter((s) => s.id !== createdSale.id)]);
+      await Promise.all([refreshProducts(), refreshCustomers()]);
+      showToast(`Order ${createdSale.sale_number} created successfully.`);
+      return createdSale;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create sale', 'error');
+      throw err;
+    }
+  };
+
+  const cancelSale = async (id: string, reason: string) => {
     const targetSale = sales.find((s) => s.id === id);
     if (!targetSale || targetSale.status === 'CANCELLED') {
       showToast('Sale already cancelled or not found.', 'error');
       return;
     }
 
-    // Revert inventory
-    setProducts((prev) =>
-      prev.map((p) => {
-        const line = targetSale.items.find((item) => item.product_id === p.id);
-        if (line) {
-          return {
-            ...p,
-            stock_quantity: p.stock_quantity + line.quantity,
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return p;
-      })
-    );
-
-    const revertMovements: InventoryMovement[] = targetSale.items.map((item) => ({
-      id: `mov_rev_${Date.now()}_${item.id}`,
-      product_id: item.product_id,
-      movement_type: 'SALE_REVERSAL',
-      quantity_delta: item.quantity,
-      reason: `Cancelled Sale ${targetSale.sale_number}: ${reason}`,
-      reference_type: 'sale_reversal',
-      reference_id: targetSale.id,
-      created_at: new Date().toISOString(),
-    }));
-
-    setMovements((prev) => [...revertMovements, ...prev]);
-
-    setSales((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              status: 'CANCELLED',
-              cancelled_at: new Date().toISOString(),
-              cancellation_reason: reason,
-              updated_at: new Date().toISOString(),
-            }
-          : s
-      )
-    );
-
-    showToast(`Sale ${targetSale.sale_number} cancelled and stock restored.`);
+    try {
+      const res = await api.cancelSale(id, reason);
+      setSales((prev) =>
+        prev.map((s) =>
+          s.id === id
+            ? {
+                ...s,
+                status: 'CANCELLED',
+                cancelled_at: res.sale.cancelled_at || new Date().toISOString(),
+                cancellation_reason: res.sale.cancellation_reason || reason,
+                updated_at: res.sale.updated_at || new Date().toISOString(),
+              }
+            : s
+        )
+      );
+      await Promise.all([refreshProducts(), refreshCustomers()]);
+      showToast(`Sale ${targetSale.sale_number} cancelled and stock restored.`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to cancel sale', 'error');
+      throw err;
+    }
   };
 
-  const addPayment = (saleId: string, paymentData: Omit<Payment, 'id' | 'sale_id' | 'created_at'>) => {
-    const newPayment: Payment = {
-      ...paymentData,
-      id: `pay_${Date.now()}`,
-      sale_id: saleId,
-      created_at: new Date().toISOString(),
-    };
-
-    setSales((prev) =>
-      prev.map((s) => {
-        if (s.id === saleId) {
-          return {
-            ...s,
-            payments: [...s.payments, newPayment],
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return s;
-      })
-    );
-
-    showToast('Payment recorded successfully.');
+  const addPayment = async (
+    saleId: string,
+    paymentData: { amount_minor: number; method: string; reference?: string | null; note?: string | null }
+  ) => {
+    try {
+      const res = await api.recordPayment(saleId, paymentData);
+      setSales((prev) =>
+        prev.map((s) => {
+          if (s.id === saleId) {
+            const updatedPayments = [...(s.payments || []), res.payment];
+            const amountPaid = updatedPayments.reduce((acc, p) => acc + Number(p.amount_minor), 0);
+            return {
+              ...s,
+              payments: updatedPayments,
+              amount_paid_minor: amountPaid,
+              balance_due_minor: res.balance_due_minor,
+              payment_status: res.payment_status as any,
+              updated_at: new Date().toISOString(),
+            };
+          }
+          return s;
+        })
+      );
+      await refreshCustomers();
+      showToast('Payment recorded successfully.');
+      return res.payment;
+    } catch (err: any) {
+      showToast(err.message || 'Failed to record payment', 'error');
+      throw err;
+    }
   };
 
   const addExpense = async (
@@ -677,6 +665,7 @@ export const DemoDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addSale,
         cancelSale,
         addPayment,
+        refreshSales,
         addExpense,
         updateExpense,
         deleteExpense,

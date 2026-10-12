@@ -14,8 +14,7 @@ const createPaymentSchema = z.object({
   note: z.string().trim().optional().nullable(),
 });
 
-// GET /api/sales/:id/invoice
-invoicesRouter.get('/:id/invoice', (req: Request, res: Response) => {
+function sendInvoiceResponse(req: Request, res: Response) {
   const db = getDb();
   const sale = db.prepare(`SELECT * FROM sales WHERE id = ?`).get(req.params.id) as any;
   if (!sale) {
@@ -53,6 +52,8 @@ invoicesRouter.get('/:id/invoice', (req: Request, res: Response) => {
       customer: customer || {
         name: sale.customer_name_snapshot,
         phone: sale.customer_contact_snapshot,
+        email: null,
+        billing_address: null,
       },
       business: settings,
       items,
@@ -68,7 +69,11 @@ invoicesRouter.get('/:id/invoice', (req: Request, res: Response) => {
       },
     },
   });
-});
+}
+
+// GET /api/sales/:id/invoice and GET /:id
+invoicesRouter.get('/:id/invoice', sendInvoiceResponse);
+invoicesRouter.get('/:id', sendInvoiceResponse);
 
 // POST /api/sales/:id/payments
 invoicesRouter.post('/:id/payments', validateBody(createPaymentSchema), (req: Request, res: Response) => {

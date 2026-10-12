@@ -32,6 +32,7 @@ export function createApp(): express.Application {
   app.use('/api/customers', customersRouter);
   app.use('/api/sales', salesRouter);
   app.use('/api/sales', invoicesRouter);
+  app.use('/api/invoices', invoicesRouter);
   app.use('/api/expenses', expensesRouter);
   app.use('/api/reports', reportsRouter);
   app.use('/api/dashboard', dashboardRouter);

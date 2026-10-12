@@ -72,6 +72,9 @@ export interface Sale {
   notes?: string;
   items: SaleItem[];
   payments: Payment[];
+  amount_paid_minor?: number;
+  balance_due_minor?: number;
+  payment_status?: PaymentStatus;
   created_at: string;
   updated_at: string;
   cancelled_at?: string;
