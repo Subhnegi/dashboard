@@ -297,6 +297,10 @@ export async function getInventoryReport(): Promise<any> {
   return request<any>('/api/reports/inventory');
 }
 
+export async function getReceivablesReport(): Promise<any> {
+  return request<any>('/api/reports/receivables');
+}
+
 // 7. Settings & Demo API
 export async function getSettings(): Promise<BusinessSettings> {
   const data = await request<{ settings: BusinessSettings }>('/api/settings');

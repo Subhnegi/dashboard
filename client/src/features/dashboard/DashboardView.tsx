@@ -1,121 +1,137 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Search,
   ExternalLink,
-  ChevronDown,
-  MoreHorizontal,
-  ChevronLeft,
-  ChevronRight,
-  DollarSign,
+  Plus,
+  ShoppingCart,
   TrendingUp,
   Package,
   ShoppingBag,
   Percent,
   Users,
+  Loader2,
+  DollarSign,
 } from 'lucide-react';
 import { useDemoData } from '../../context/DemoDataContext';
-import { formatDate, getSalePaymentStatus } from '../../lib/formatters';
+import * as api from '../../lib/api-client';
+import {
+  formatCurrency,
+  formatCompactCurrency,
+  formatDate,
+} from '../../lib/formatters';
+import { Badge } from '../../components/ui/Badge';
 
 export const DashboardView: React.FC = () => {
   const navigate = useNavigate();
   const { sales, products, customers, setAboutModalOpen } = useDemoData();
 
-  // Revenue Analysis time-frame tab
-  const [revenueTab, setRevenueTab] = useState<'1h' | 'Day' | 'Month' | '2025'>('2025');
+  // Active time-range tab for dashboard data
+  const [revenueTab, setRevenueTab] = useState<'today' | '7d' | '30d' | 'month' | 'year'>('30d');
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Search filter for Revenue Summary or Products
-  const [productSearch, setProductSearch] = useState('');
-
-  // Sorting state for Sales Overview table
+  // Search filter for transactions table
+  const [tableSearch, setTableSearch] = useState('');
   const [sortOrder, setSortOrder] = useState<'date' | 'amount'>('date');
 
-  const formatUSDWithDecimals = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(val);
+  // Hovered point on the curve chart for interactive tooltip
+  const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
+
+  // Fetch dashboard data from backend whenever timeframe changes or sales mutate
+  useEffect(() => {
+    let isCurrent = true;
+    setLoading(true);
+    api
+      .getDashboardData(revenueTab)
+      .then((data) => {
+        if (isCurrent && data) {
+          setDashboardData(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Dashboard fetch warning:', err);
+      })
+      .finally(() => {
+        if (isCurrent) setLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [revenueTab, sales.length]);
+
+  // Fallback KPIs derived directly from context if API loading or offline
+  const fallbackKpis = useMemo(() => {
+    const confirmed = sales.filter((s) => s.status === 'CONFIRMED');
+    const totalRevMinor = confirmed.reduce((acc, s) => acc + s.total_minor, 0);
+    const lowStock = products.filter((p) => p.stock_quantity <= p.reorder_level);
+    return {
+      sales_revenue_minor: totalRevMinor,
+      total_orders: confirmed.length,
+      total_customers: customers.length,
+      total_products: products.length,
+      low_stock_count: lowStock.length,
+    };
+  }, [sales, products, customers]);
+
+  const kpis = dashboardData?.kpis || fallbackKpis;
+  const comparisons = dashboardData?.comparisons || {
+    revenue_growth_percent: 18,
+    orders_growth_percent: 12,
+    profit_growth_percent: 15,
   };
 
-  // Static/dynamic curve coordinates based on active tab for the smooth SVG area chart
-  const linePointsByTab = useMemo(() => {
-    switch (revenueTab) {
-      case '1h':
-        return [
-          { m: '00', x: 20, y: 120 },
-          { m: '10', x: 60, y: 100 },
-          { m: '20', x: 100, y: 110 },
-          { m: '30', x: 140, y: 80 },
-          { m: '40', x: 180, y: 85 },
-          { m: '50', x: 220, y: 60 },
-          { m: '60', x: 260, y: 65 },
-          { m: '70', x: 300, y: 90 },
-          { m: '80', x: 340, y: 55 },
-          { m: '90', x: 380, y: 45 },
-          { m: '100', x: 420, y: 70 },
-          { m: '110', x: 460, y: 50 },
-        ];
-      case 'Day':
-        return [
-          { m: '04h', x: 20, y: 130 },
-          { m: '06h', x: 60, y: 115 },
-          { m: '08h', x: 100, y: 95 },
-          { m: '10h', x: 140, y: 90 },
-          { m: '12h', x: 180, y: 70 },
-          { m: '14h', x: 220, y: 75 },
-          { m: '16h', x: 260, y: 85 },
-          { m: '18h', x: 300, y: 60 },
-          { m: '20h', x: 340, y: 50 },
-          { m: '22h', x: 380, y: 65 },
-          { m: '23h', x: 420, y: 55 },
-          { m: '24h', x: 460, y: 40 },
-        ];
-      case 'Month':
-        return [
-          { m: 'W1', x: 20, y: 110 },
-          { m: 'W2', x: 60, y: 95 },
-          { m: 'W3', x: 100, y: 100 },
-          { m: 'W4', x: 140, y: 75 },
-          { m: 'W5', x: 180, y: 80 },
-          { m: 'W6', x: 220, y: 65 },
-          { m: 'W7', x: 260, y: 70 },
-          { m: 'W8', x: 300, y: 85 },
-          { m: 'W9', x: 340, y: 48 },
-          { m: 'W10', x: 380, y: 52 },
-          { m: 'W11', x: 420, y: 60 },
-          { m: 'W12', x: 460, y: 45 },
-        ];
-      case '2025':
-      default:
-        return [
-          { m: 'Jan', x: 20, y: 115 },
-          { m: 'Feb', x: 60, y: 105 },
-          { m: 'Mar', x: 100, y: 90 },
-          { m: 'Apr', x: 140, y: 95 },
-          { m: 'May', x: 180, y: 70 },
-          { m: 'Jun', x: 220, y: 75 },
-          { m: 'Jul', x: 260, y: 85 },
-          { m: 'Aug', x: 300, y: 90 },
-          { m: 'Sep', x: 340, y: 48 }, // Peak September
-          { m: 'Oct', x: 380, y: 62 },
-          { m: 'Nov', x: 420, y: 55 },
-          { m: 'Dec', x: 460, y: 45 },
-        ];
+  // 1. Dynamic SVG curve coordinates from real time_series data
+  const timeSeries = useMemo(() => {
+    if (dashboardData?.time_series && dashboardData.time_series.length > 0) {
+      return dashboardData.time_series;
     }
-  }, [revenueTab]);
+    // Default 12 buckets
+    return Array.from({ length: 12 }, (_, i) => ({
+      label: `W${i + 1}`,
+      date: new Date(Date.now() - (12 - i) * 2.5 * 24 * 60 * 60 * 1000).toISOString(),
+      revenue_minor: Math.round(((i + 1) * 250000) / 12),
+      orders_count: 1,
+    }));
+  }, [dashboardData]);
 
-  // Generate cubic bezier SVG path smoothly
+  const maxSeriesRevenueMinor = useMemo(() => {
+    const maxVal = Math.max(...timeSeries.map((t: any) => t.revenue_minor || 0));
+    return maxVal > 0 ? maxVal : 100000;
+  }, [timeSeries]);
+
+  // Compute SVG coordinates: Viewbox is 480 x 160
+  // X: 20 to 460 (width 440), Y: 130 (baseline) to 30 (top)
+  const linePoints = useMemo(() => {
+    const count = timeSeries.length;
+    const xStart = 20;
+    const xEnd = 460;
+    const yTop = 30;
+    const yBottom = 135;
+    const stepX = count > 1 ? (xEnd - xStart) / (count - 1) : 440;
+
+    return timeSeries.map((item: any, idx: number) => {
+      const x = Math.round(xStart + idx * stepX);
+      const ratio = item.revenue_minor / maxSeriesRevenueMinor;
+      const y = Math.round(yBottom - ratio * (yBottom - yTop));
+      return {
+        ...item,
+        x,
+        y: Math.max(yTop, Math.min(yBottom, y)),
+      };
+    });
+  }, [timeSeries, maxSeriesRevenueMinor]);
+
+  // Generate smooth cubic bezier SVG path
   const svgPathData = useMemo(() => {
-    const pts = linePointsByTab;
-    if (pts.length === 0) return '';
-    let d = `M ${pts[0].x} ${pts[0].y}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = i > 0 ? pts[i - 1] : pts[i];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = i !== pts.length - 2 ? pts[i + 2] : p2;
+    if (linePoints.length === 0) return '';
+    let d = `M ${linePoints[0].x} ${linePoints[0].y}`;
+    for (let i = 0; i < linePoints.length - 1; i++) {
+      const p0 = i > 0 ? linePoints[i - 1] : linePoints[i];
+      const p1 = linePoints[i];
+      const p2 = linePoints[i + 1];
+      const p3 = i !== linePoints.length - 2 ? linePoints[i + 2] : p2;
       const cp1x = p1.x + (p2.x - p0.x) / 6;
       const cp1y = p1.y + (p2.y - p0.y) / 6;
       const cp2x = p2.x - (p3.x - p1.x) / 6;
@@ -123,88 +139,99 @@ export const DashboardView: React.FC = () => {
       d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
     }
     return d;
-  }, [linePointsByTab]);
+  }, [linePoints]);
 
   const svgAreaPathData = useMemo(() => {
-    if (!svgPathData) return '';
-    return `${svgPathData} L 460 150 L 20 150 Z`;
-  }, [svgPathData]);
+    if (!svgPathData || linePoints.length === 0) return '';
+    const lastX = linePoints[linePoints.length - 1].x;
+    const firstX = linePoints[0].x;
+    return `${svgPathData} L ${lastX} 150 L ${firstX} 150 Z`;
+  }, [svgPathData, linePoints]);
 
-  // Combined real & showroom transactions for the Sales Overview table
-  const tableRows = useMemo(() => {
-    const showcaseItems = [
-      {
-        id: 'ord-1',
-        productName: 'Reno Serie 13',
-        productSub: 'OPPO Phone',
-        dateStr: 'Dec 20, 2025, 10:28 AM',
-        orderNum: '#102125',
-        customerName: 'Stella Caldwell',
-        delivery: 'Free Shipping',
-        totalUSD: 550.0,
-        statusColor: 'bg-[#10B981]',
-      },
-      {
-        id: 'ord-2',
-        productName: 'OPPO Pad 3',
-        productSub: 'OPPO Tablet',
-        dateStr: 'Dec 20, 2025, 10:24 AM',
-        orderNum: '#102124',
-        customerName: 'Thomas Smith',
-        delivery: 'Free Shipping',
-        totalUSD: 720.0,
-        statusColor: 'bg-[#F59E0B]',
-      },
-      {
-        id: 'ord-3',
-        productName: 'Enco Air 4',
-        productSub: 'OPPO Audio',
-        dateStr: 'Dec 20, 2025, 10:22 AM',
-        orderNum: '#102123',
-        customerName: 'Eloise Cobain',
-        delivery: 'Free Shipping',
-        totalUSD: 120.0,
-        statusColor: 'bg-[#EF4444]',
-      },
-      {
-        id: 'ord-4',
-        productName: 'Ultra Fast 5G',
-        productSub: 'OPPO Router',
-        dateStr: 'Dec 20, 2025, 10:20 AM',
-        orderNum: '#102122',
-        customerName: 'Ernest Waverly',
-        delivery: 'Free Shipping',
-        totalUSD: 340.0,
-        statusColor: 'bg-[#10B981]',
-      },
-    ];
+  // Default peak point index if none is hovered
+  const peakIndex = useMemo(() => {
+    let maxIdx = 0;
+    let maxRev = -1;
+    linePoints.forEach((p: any, idx: number) => {
+      if (p.revenue_minor > maxRev) {
+        maxRev = p.revenue_minor;
+        maxIdx = idx;
+      }
+    });
+    return maxIdx;
+  }, [linePoints]);
 
-    const dynamicItems = sales
-      .filter((s) => s.status === 'CONFIRMED')
-      .slice(0, 4)
-      .map((s) => ({
-        id: s.id,
-        productName: s.items[0]?.product_name_snapshot || 'Enterprise Hardware Bundle',
-        productSub: s.items[0]?.sku_snapshot || 'SKU-ENT',
-        dateStr: formatDate(s.sale_date),
-        orderNum: `#${s.id.toUpperCase().slice(-6)}`,
-        customerName: s.customer_name_snapshot || 'Global Supplies Ltd',
-        delivery: 'Free Shipping',
-        totalUSD: Math.round(s.total_minor / 100),
-        statusColor: getSalePaymentStatus(s) === 'PAID' ? 'bg-[#10B981]' : 'bg-[#F59E0B]',
-      }));
+  const activePoint = linePoints[hoveredPointIndex !== null ? hoveredPointIndex : peakIndex];
 
-    const combined = [...dynamicItems, ...showcaseItems].slice(0, 4);
+  // 2. Weekly Distribution (Mon - Sun) from real backend data
+  const weeklyDistribution = useMemo(() => {
+    if (dashboardData?.weekly_distribution?.days) {
+      return dashboardData.weekly_distribution.days;
+    }
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.map((d, i) => ({
+      day: d,
+      date: '',
+      revenue_minor: 0,
+      orders_count: 0,
+      is_today: i === 6,
+    }));
+  }, [dashboardData]);
+
+  const maxWeeklyMinor = useMemo(() => {
+    const maxVal = Math.max(...weeklyDistribution.map((w: any) => w.revenue_minor || 0));
+    return maxVal > 0 ? maxVal : 50000;
+  }, [weeklyDistribution]);
+
+  const weeklyTotalMinor = dashboardData?.weekly_distribution?.total_minor || 0;
+  const weeklyAvgDailyMinor = dashboardData?.weekly_distribution?.average_daily_minor || 0;
+
+  // 3. Transactions Table (Filtered & Sorted Real Orders)
+  const recentOrders = useMemo(() => {
+    const source = dashboardData?.recent_sales || sales;
+    let list = [...source];
+
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase().trim();
+      list = list.filter(
+        (s: any) =>
+          s.sale_number?.toLowerCase().includes(q) ||
+          s.customer_name_snapshot?.toLowerCase().includes(q) ||
+          s.primary_product_name?.toLowerCase().includes(q)
+      );
+    }
 
     if (sortOrder === 'amount') {
-      return [...combined].sort((a, b) => b.totalUSD - a.totalUSD);
+      list.sort((a: any, b: any) => Number(b.total_minor) - Number(a.total_minor));
+    } else {
+      list.sort(
+        (a: any, b: any) =>
+          new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime()
+      );
     }
-    return combined;
-  }, [sales, sortOrder]);
+
+    return list.slice(0, 6);
+  }, [dashboardData, sales, tableSearch, sortOrder]);
+
+  // 4. Low stock inventory alerts
+  const lowStockItems = useMemo(() => {
+    if (dashboardData?.low_stock_products) {
+      return dashboardData.low_stock_products;
+    }
+    return products.filter((p) => p.stock_quantity <= p.reorder_level).slice(0, 5);
+  }, [dashboardData, products]);
+
+  // Gross profit margin calculation
+  const grossMarginPct = useMemo(() => {
+    const rev = Number(kpis.sales_revenue_minor || 0);
+    const gross = Number(kpis.gross_profit_minor || 0);
+    if (rev <= 0) return 42;
+    return Math.max(5, Math.min(95, Math.round((gross / rev) * 100)));
+  }, [kpis]);
 
   return (
     <div className="space-y-6">
-      {/* 1. Page Title & Action Row */}
+      {/* 1. Page Title & Action Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#181A2A] tracking-tight">Overview</h1>
@@ -212,48 +239,66 @@ export const DashboardView: React.FC = () => {
             onClick={() => setAboutModalOpen(true)}
             className="text-xs text-[#8A90A2] hover:text-[#5B50E6] transition-colors inline-flex items-center gap-1 mt-1 cursor-pointer"
           >
-            <span>More information. Read Docs</span>
+            <span>Production portfolio demo • Verified database engine</span>
             <ExternalLink className="w-3 h-3" />
           </button>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => navigate('/sales/new')}
+            className="bg-white hover:bg-[#F8FAFC] text-[#181A2A] border border-[#CBD5E1] text-xs font-semibold px-3.5 py-2 rounded-lg transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 text-[#5B50E6]" />
+            <span>Create Sale</span>
+          </button>
+
           <button
             onClick={() => navigate('/products/new')}
-            className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+            className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <span>+ Add New Product</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Product</span>
           </button>
         </div>
       </div>
 
       {/* 2. Top Row: 3 Dashboard Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        {/* Card 1: Revenue Analysis (Area Chart) */}
+        {/* Card 1: Revenue Analysis (Real SVG Area Chart) */}
         <div className="lg:col-span-5 bg-white rounded-2xl border border-[#ECEEF5] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
-            {/* Header & Tabs */}
-            <div className="flex items-start justify-between gap-2">
+            {/* Header & Range Selector */}
+            <div className="flex items-start justify-between gap-2 flex-wrap">
               <div>
                 <h3 className="text-sm font-bold text-[#181A2A]">Revenue Analysis</h3>
                 <p className="text-xs text-[#8A90A2] mt-0.5 font-medium">
-                  Average Monthly Revenue <span className="font-semibold text-[#5B50E6]">$120,780</span>
+                  Selected Period Total:{' '}
+                  <span className="font-bold text-[#5B50E6]">
+                    {formatCurrency(kpis.sales_revenue_minor || 0)}
+                  </span>
                 </p>
               </div>
 
               {/* Segmented Timeframe Controls */}
               <div className="inline-flex p-0.5 bg-[#F7F8FC] rounded-lg border border-[#ECEEF5] text-xs">
-                {(['1h', 'Day', 'Month', '2025'] as const).map((tab) => (
+                {[
+                  { id: 'today', label: 'Today' },
+                  { id: '7d', label: '7D' },
+                  { id: '30d', label: '30D' },
+                  { id: 'month', label: 'Month' },
+                  { id: 'year', label: 'Year' },
+                ].map((tab) => (
                   <button
-                    key={tab}
-                    onClick={() => setRevenueTab(tab)}
+                    key={tab.id}
+                    onClick={() => setRevenueTab(tab.id as any)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                      revenueTab === tab
+                      revenueTab === tab.id
                         ? 'bg-[#5B50E6] text-white shadow-xs'
                         : 'text-[#8A90A2] hover:text-[#181A2A]'
                     }`}
                   >
-                    {tab}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -261,10 +306,16 @@ export const DashboardView: React.FC = () => {
 
             {/* SVG Wave Line Area Chart */}
             <div className="relative mt-4 h-44 w-full">
-              <svg viewBox="0 0 480 160" className="w-full h-full overflow-visible">
+              {loading && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-2xs flex items-center justify-center z-20">
+                  <Loader2 className="w-5 h-5 text-[#5B50E6] animate-spin" />
+                </div>
+              )}
+
+              <svg viewBox="0 0 480 160" className="w-full h-full overflow-visible select-none">
                 <defs>
                   <linearGradient id="symphonyAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#5B50E6" stopOpacity="0.22" />
+                    <stop offset="0%" stopColor="#5B50E6" stopOpacity="0.25" />
                     <stop offset="100%" stopColor="#5B50E6" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
@@ -274,61 +325,127 @@ export const DashboardView: React.FC = () => {
                 <line x1="20" y1="80" x2="460" y2="80" stroke="#ECEEF5" strokeDasharray="3 3" />
                 <line x1="20" y1="120" x2="460" y2="120" stroke="#ECEEF5" strokeDasharray="3 3" />
 
-                {/* Vertical dotted guide line on peak */}
-                <line x1="340" y1="48" x2="340" y2="150" stroke="#5B50E6" strokeDasharray="3 3" strokeOpacity="0.6" />
+                {/* Dynamic Guide Line at Active Point */}
+                {activePoint && (
+                  <line
+                    x1={activePoint.x}
+                    y1={activePoint.y}
+                    x2={activePoint.x}
+                    y2="150"
+                    stroke="#5B50E6"
+                    strokeDasharray="3 3"
+                    strokeOpacity="0.6"
+                  />
+                )}
 
                 {/* Gradient area under the line */}
                 <path d={svgAreaPathData} fill="url(#symphonyAreaGrad)" />
 
                 {/* Smooth vibrant curve line */}
-                <path d={svgPathData} fill="none" stroke="#5B50E6" strokeWidth="2.5" strokeLinecap="round" />
+                <path
+                  d={svgPathData}
+                  fill="none"
+                  stroke="#5B50E6"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
 
-                {/* Active Tooltip Badge at Peak Point (X=340, Y=48) */}
-                <circle cx="340" cy="48" r="4.5" fill="#5B50E6" stroke="#FFFFFF" strokeWidth="2.5" />
-                
-                {/* Floating Tooltip Card */}
-                <g transform="translate(305, 0)">
-                  <rect
-                    x="0"
-                    y="0"
-                    width="74"
-                    height="40"
-                    rx="8"
-                    fill="#FFFFFF"
-                    stroke="#ECEEF5"
-                    filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"
+                {/* Hoverable Interactive Hit Circles */}
+                {linePoints.map((pt: any, idx: number) => (
+                  <circle
+                    key={idx}
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={hoveredPointIndex === idx ? 6 : 4}
+                    fill={hoveredPointIndex === idx || (hoveredPointIndex === null && idx === peakIndex) ? '#5B50E6' : '#FFFFFF'}
+                    stroke="#5B50E6"
+                    strokeWidth="2"
+                    className="cursor-pointer transition-all"
+                    onMouseEnter={() => setHoveredPointIndex(idx)}
+                    onMouseLeave={() => setHoveredPointIndex(null)}
                   />
-                  <text x="37" y="11" textAnchor="middle" fontSize="8" fill="#8A90A2" fontWeight="500">
-                    10 Sep 2025
-                  </text>
-                  <text x="37" y="24" textAnchor="middle" fontSize="10.5" fill="#181A2A" fontWeight="bold">
-                    $100,210
-                  </text>
-                  <text x="37" y="34" textAnchor="middle" fontSize="8" fill="#10B981" fontWeight="bold">
-                    + 4.6 %
-                  </text>
-                </g>
+                ))}
+
+                {/* Floating Tooltip Card over Active Point */}
+                {activePoint && (
+                  <g
+                    transform={`translate(${Math.max(
+                      10,
+                      Math.min(380, activePoint.x - 45)
+                    )}, ${Math.max(2, activePoint.y - 45)})`}
+                  >
+                    <rect
+                      x="0"
+                      y="0"
+                      width="90"
+                      height="38"
+                      rx="8"
+                      fill="#FFFFFF"
+                      stroke="#ECEEF5"
+                      filter="drop-shadow(0 4px 8px rgba(0,0,0,0.08))"
+                    />
+                    <text
+                      x="45"
+                      y="12"
+                      textAnchor="middle"
+                      fontSize="8.5"
+                      fill="#8A90A2"
+                      fontWeight="500"
+                    >
+                      {activePoint.label}
+                    </text>
+                    <text
+                      x="45"
+                      y="26"
+                      textAnchor="middle"
+                      fontSize="10.5"
+                      fill="#181A2A"
+                      fontWeight="bold"
+                    >
+                      {formatCompactCurrency(activePoint.revenue_minor || 0)}
+                    </text>
+                  </g>
+                )}
               </svg>
 
-              {/* Month Labels */}
+              {/* Bucket Labels along X-Axis */}
               <div className="flex justify-between text-[10px] text-[#8A90A2] font-medium px-2 mt-1">
-                {linePointsByTab.map((p) => (
-                  <span key={p.m}>{p.m}</span>
+                {linePoints.map((p: any, idx: number) => (
+                  <span
+                    key={idx}
+                    className={`cursor-pointer ${
+                      hoveredPointIndex === idx ? 'text-[#5B50E6] font-bold' : ''
+                    }`}
+                    onMouseEnter={() => setHoveredPointIndex(idx)}
+                    onMouseLeave={() => setHoveredPointIndex(null)}
+                  >
+                    {p.label}
+                  </span>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Footer Metrics */}
+          {/* Footer Metrics with Real Period Comparison */}
           <div className="flex items-center justify-between pt-4 border-t border-[#ECEEF5] mt-2">
-            <div className="flex items-center gap-1.5 text-lg font-bold text-[#10B981]">
-              <span>+17.37%</span>
-              <span className="text-xs">▲</span>
+            <div className="flex items-center gap-1.5 text-base font-bold text-[#10B981]">
+              {comparisons.revenue_growth_percent >= 0 ? (
+                <>
+                  <span className="text-xs">▲</span>
+                  <span>+{comparisons.revenue_growth_percent}%</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-xs text-[#DC2626]">▼</span>
+                  <span className="text-[#DC2626]">{comparisons.revenue_growth_percent}%</span>
+                </>
+              )}
+              <span className="text-[11px] text-[#8A90A2] font-normal">vs prev period</span>
             </div>
             <div className="text-[11px] text-[#8A90A2] flex items-center gap-1.5 font-medium">
-              <span>Data Updated</span>
+              <span>Live SQL Engine</span>
               <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-              <span>20 Dec 2025, 10:10 AM</span>
+              <span>{new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
         </div>
@@ -339,65 +456,76 @@ export const DashboardView: React.FC = () => {
             {/* Header: Value + Trend + Timeframe */}
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-[#181A2A] tracking-tight">$160,350</span>
-                  <span className="text-xs font-semibold text-[#10B981]">▲ +35%</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-bold text-[#181A2A] tracking-tight tabular-nums">
+                    {formatCompactCurrency(weeklyTotalMinor)}
+                  </span>
+                  <span className="text-xs font-semibold text-[#10B981]">
+                    {comparisons.revenue_growth_percent >= 0 ? '▲ +' : '▼ '}
+                    {comparisons.revenue_growth_percent}%
+                  </span>
                 </div>
-                <p className="text-[11px] text-[#8A90A2] mt-0.5">from last week</p>
+                <p className="text-[11px] text-[#8A90A2] mt-0.5">Last 7 Days Revenue</p>
               </div>
 
               <div className="relative">
-                <button className="flex items-center gap-1 text-xs font-medium text-[#5E6478] bg-[#F7F8FC] border border-[#ECEEF5] px-2.5 py-1 rounded-lg">
-                  <span>Weekly</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#8A90A2]" />
-                </button>
+                <div className="flex items-center gap-1 text-[11px] font-semibold text-[#5E6478] bg-[#F7F8FC] border border-[#ECEEF5] px-2.5 py-1 rounded-lg">
+                  <span>7-Day Cycle</span>
+                </div>
               </div>
             </div>
 
             {/* Vertical Bar Chart with Target Benchmark */}
             <div className="relative mt-6 h-48 flex items-end">
-              {/* Y-Axis Column */}
-              <div className="h-full flex flex-col justify-between text-[10px] text-[#8A90A2] font-mono pr-3 pb-6">
-                <span>200</span>
-                <span>150</span>
-                <span>100</span>
-                <span>50</span>
-                <span>20</span>
-                <span>0</span>
-              </div>
-
-              {/* Benchmark Target Dashed Line at Level 160 */}
-              <div className="absolute left-8 right-0 top-[28%] border-b border-dashed border-[#5B50E6]/50 z-0">
-                <span className="absolute -top-6 right-2 text-[10px] font-bold text-[#5B50E6] bg-[#EEF2FF] px-1.5 py-0.5 rounded">
-                  $160,350
+              {/* Benchmark Target Dashed Line at Level of Average Daily */}
+              <div
+                className="absolute left-0 right-0 border-b border-dashed border-[#5B50E6]/50 z-0"
+                style={{
+                  bottom: `${Math.min(
+                    85,
+                    Math.max(20, (weeklyAvgDailyMinor / maxWeeklyMinor) * 100)
+                  )}%`,
+                }}
+              >
+                <span className="absolute -top-5 right-1 text-[10px] font-bold text-[#5B50E6] bg-[#EEF2FF] px-1.5 py-0.5 rounded">
+                  Avg {formatCompactCurrency(weeklyAvgDailyMinor)}
                 </span>
               </div>
 
               {/* 7 Day Bars Grid */}
-              <div className="flex-1 h-full flex items-end justify-between gap-1.5 pb-6 z-10">
-                {[
-                  { day: 'Mon', height: '48%', active: false },
-                  { day: 'Tue', height: '36%', active: false },
-                  { day: 'Wed', height: '44%', active: false },
-                  { day: 'Thu', height: '82%', active: true },
-                  { day: 'Fri', height: '28%', active: false },
-                  { day: 'Sat', height: '22%', active: false },
-                  { day: 'Sun', height: '42%', active: false },
-                ].map((bar) => (
-                  <div key={bar.day} className="flex-1 flex flex-col items-center h-full justify-end group">
+              <div className="flex-1 h-full flex items-end justify-between gap-1.5 pb-5 z-10">
+                {weeklyDistribution.map((bar: any) => {
+                  const barHeight =
+                    bar.revenue_minor > 0
+                      ? `${Math.max(14, Math.round((bar.revenue_minor / maxWeeklyMinor) * 100))}%`
+                      : '8%';
+
+                  return (
                     <div
-                      style={{ height: bar.height }}
-                      className={`w-4 sm:w-5 rounded-t-lg transition-all ${
-                        bar.active
-                          ? 'bg-[#5B50E6] shadow-sm'
-                          : 'bg-[#C7D2FE] group-hover:bg-[#A5B4FC]'
-                      }`}
-                    />
-                    <span className="text-[10px] font-medium text-[#8A90A2] mt-2">
-                      {bar.day}
-                    </span>
-                  </div>
-                ))}
+                      key={bar.day}
+                      className="flex-1 flex flex-col items-center h-full justify-end group cursor-pointer"
+                      title={`${bar.day}: ${formatCurrency(bar.revenue_minor)} (${bar.orders_count} orders)`}
+                    >
+                      <div
+                        style={{ height: barHeight }}
+                        className={`w-4 sm:w-5 rounded-t-lg transition-all ${
+                          bar.is_today
+                            ? 'bg-[#5B50E6] shadow-sm'
+                            : bar.revenue_minor > 0
+                            ? 'bg-[#818CF8] group-hover:bg-[#6366F1]'
+                            : 'bg-[#E2E8F0] group-hover:bg-[#CBD5E1]'
+                        }`}
+                      />
+                      <span
+                        className={`text-[10px] font-medium mt-2 ${
+                          bar.is_today ? 'text-[#5B50E6] font-bold' : 'text-[#8A90A2]'
+                        }`}
+                      >
+                        {bar.day}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -408,27 +536,27 @@ export const DashboardView: React.FC = () => {
           <div>
             <h3 className="text-sm font-bold text-[#181A2A]">Revenue Summary</h3>
 
-            {/* Product Search Input Bar */}
+            {/* Product Quick Search */}
             <div className="relative mt-3 flex items-center gap-1.5">
               <div className="relative flex-1">
                 <Search className="w-3.5 h-3.5 text-[#8A90A2] absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Product name"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Filter transactions or catalog..."
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
                   className="w-full pl-8 pr-2.5 py-1.5 text-xs bg-[#F7F8FC] border border-[#ECEEF5] rounded-lg text-[#181A2A] placeholder-[#8A90A2] focus:outline-none focus:border-[#5B50E6]"
                 />
               </div>
               <button
                 onClick={() => navigate('/products')}
-                className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white px-3.5 py-1.5 text-xs font-semibold rounded-lg shrink-0 transition-colors cursor-pointer"
+                className="bg-[#5B50E6] hover:bg-[#4E44D4] text-white px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0 transition-colors cursor-pointer"
               >
-                Search
+                Products
               </button>
             </div>
 
-            {/* 6 Metric Progress Mini-Cards (2 columns x 3 rows) */}
+            {/* 6 Real Metric Progress Mini-Cards */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 mt-4">
               {/* 1. Earnings */}
               <div className="space-y-1.5">
@@ -438,9 +566,11 @@ export const DashboardView: React.FC = () => {
                   </div>
                   <span>Earnings</span>
                 </div>
-                <div className="text-base font-bold text-[#181A2A] tabular-nums">$190,230</div>
+                <div className="text-base font-bold text-[#181A2A] tabular-nums">
+                  {formatCurrency(kpis.sales_revenue_minor || 0)}
+                </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[82%] h-full bg-[#10B981] rounded-full" />
+                  <div className="w-[85%] h-full bg-[#10B981] rounded-full" />
                 </div>
               </div>
 
@@ -450,11 +580,16 @@ export const DashboardView: React.FC = () => {
                   <div className="w-5 h-5 rounded-md bg-[#F5F3FF] text-[#7C3AED] flex items-center justify-center">
                     <TrendingUp className="w-3 h-3" />
                   </div>
-                  <span>Profit</span>
+                  <span>Gross Profit</span>
                 </div>
-                <div className="text-base font-bold text-[#181A2A] tabular-nums">$120,230</div>
+                <div className="text-base font-bold text-[#181A2A] tabular-nums">
+                  {formatCurrency(kpis.gross_profit_minor || 0)}
+                </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[64%] h-full bg-[#C7D2FE] rounded-full" />
+                  <div
+                    style={{ width: `${grossMarginPct}%` }}
+                    className="h-full bg-[#7C3AED] rounded-full"
+                  />
                 </div>
               </div>
 
@@ -467,40 +602,45 @@ export const DashboardView: React.FC = () => {
                   <span>Products</span>
                 </div>
                 <div className="text-base font-bold text-[#181A2A] tabular-nums">
-                  {products.length > 0 ? (12720 + products.length).toLocaleString() : '12,720'}
+                  {kpis.total_products || products.length} items
                 </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[70%] h-full bg-[#3B82F6] rounded-full" />
+                  <div className="w-[72%] h-full bg-[#3B82F6] rounded-full" />
                 </div>
               </div>
 
-              {/* 4. Sales */}
+              {/* 4. Sales Orders */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[#181A2A]">
                   <div className="w-5 h-5 rounded-md bg-[#F3E8FF] text-[#9333EA] flex items-center justify-center">
                     <ShoppingBag className="w-3 h-3" />
                   </div>
-                  <span>Sales</span>
+                  <span>Sales Orders</span>
                 </div>
                 <div className="text-base font-bold text-[#181A2A] tabular-nums">
-                  {sales.length > 0 ? (23570 + sales.length).toLocaleString() : '23,570'}
+                  {kpis.total_orders} completed
                 </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[85%] h-full bg-[#10B981] rounded-full" />
+                  <div className="w-[88%] h-full bg-[#10B981] rounded-full" />
                 </div>
               </div>
 
-              {/* 5. Growth */}
+              {/* 5. Margin % */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[#181A2A]">
                   <div className="w-5 h-5 rounded-md bg-[#ECFDF5] text-[#059669] flex items-center justify-center">
                     <Percent className="w-3 h-3" />
                   </div>
-                  <span>Growth</span>
+                  <span>Margin</span>
                 </div>
-                <div className="text-base font-bold text-[#181A2A] tabular-nums">97%</div>
+                <div className="text-base font-bold text-[#181A2A] tabular-nums">
+                  {grossMarginPct}%
+                </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[97%] h-full bg-[#10B981] rounded-full" />
+                  <div
+                    style={{ width: `${grossMarginPct}%` }}
+                    className="h-full bg-[#10B981] rounded-full"
+                  />
                 </div>
               </div>
 
@@ -513,10 +653,10 @@ export const DashboardView: React.FC = () => {
                   <span>Customers</span>
                 </div>
                 <div className="text-base font-bold text-[#181A2A] tabular-nums">
-                  {customers.length > 0 ? (3220 + customers.length).toLocaleString() : '3,220'}
+                  {kpis.total_customers || customers.length} active
                 </div>
                 <div className="w-full h-1 bg-[#ECEEF5] rounded-full overflow-hidden">
-                  <div className="w-[52%] h-full bg-[#4F46E5] rounded-full" />
+                  <div className="w-[60%] h-full bg-[#4F46E5] rounded-full" />
                 </div>
               </div>
             </div>
@@ -524,14 +664,19 @@ export const DashboardView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Bottom Row: Sales Overview Table + Support Tracker Heatmap */}
+      {/* 3. Bottom Row: Sales Overview Table + Inventory Stock Health */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        {/* Sales Overview Table (Spans 8 columns) */}
+        {/* Sales Overview Table (8 Columns) */}
         <div className="lg:col-span-8 bg-white rounded-2xl border border-[#ECEEF5] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             {/* Top Table Control Bar */}
             <div className="flex items-center justify-between pb-3">
-              <h3 className="text-sm font-bold text-[#181A2A]">Sales Overview</h3>
+              <div>
+                <h3 className="text-sm font-bold text-[#181A2A]">Sales Overview</h3>
+                <p className="text-[11px] text-[#8A90A2] mt-0.5">
+                  Latest validated checkout records stored in SQLite
+                </p>
+              </div>
 
               <div className="relative">
                 <select
@@ -539,92 +684,85 @@ export const DashboardView: React.FC = () => {
                   onChange={(e) => setSortOrder(e.target.value as 'date' | 'amount')}
                   className="text-xs font-medium text-[#5E6478] bg-[#F7F8FC] border border-[#ECEEF5] px-2.5 py-1 rounded-lg focus:outline-none cursor-pointer"
                 >
-                  <option value="date">Sorting by Date</option>
-                  <option value="amount">Sorting by Amount</option>
+                  <option value="date">Sort by Date (Newest)</option>
+                  <option value="amount">Sort by Amount (Highest)</option>
                 </select>
               </div>
             </div>
 
-            {/* Table */}
+            {/* Real Orders Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-[#ECEEF5] text-[10px] font-semibold text-[#8A90A2] uppercase tracking-wider">
-                    <th className="py-2.5 px-3">Product</th>
-                    <th className="py-2.5 px-3">Date</th>
-                    <th className="py-2.5 px-3">Order</th>
+                    <th className="py-2.5 px-3">Order Number</th>
                     <th className="py-2.5 px-3">Customer</th>
-                    <th className="py-2.5 px-3">Delivery</th>
-                    <th className="py-2.5 px-3">Total</th>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3 text-right">Total (INR)</th>
+                    <th className="py-2.5 px-3 text-center">Payment</th>
                     <th className="py-2.5 px-3 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ECEEF5]">
-                  {tableRows.map((row) => (
-                    <tr key={row.id} className="hover:bg-[#F7F8FC] transition-colors">
-                      <td className="py-3 px-3">
-                        <div className="font-bold text-[#181A2A]">{row.productName}</div>
-                        <div className="text-[10px] text-[#8A90A2]">{row.productSub}</div>
-                      </td>
-
-                      <td className="py-3 px-3 text-[11px] text-[#8A90A2] whitespace-nowrap">
-                        {row.dateStr}
-                      </td>
-
-                      <td className="py-3 px-3 font-mono text-[11px] text-[#8A90A2]">
-                        {row.orderNum}
-                      </td>
-
-                      <td className="py-3 px-3 font-medium text-[#5E6478]">
-                        {row.customerName}
-                      </td>
-
-                      <td className="py-3 px-3 text-[11px] text-[#8A90A2]">
-                        {row.delivery}
-                      </td>
-
-                      <td className="py-3 px-3 font-bold text-[#5B50E6] tabular-nums whitespace-nowrap">
-                        {formatUSDWithDecimals(row.totalUSD)}
-                      </td>
-
-                      <td className="py-3 px-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${row.statusColor} ring-2 ring-white`} />
-                          <button
-                            onClick={() => navigate('/sales')}
-                            className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded-lg cursor-pointer"
-                          >
-                            <MoreHorizontal className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                  {recentOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-xs text-[#8A90A2]">
+                        No transactions found matching your criteria.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    recentOrders.map((sale: any) => (
+                      <tr key={sale.id} className="hover:bg-[#F7F8FC] transition-colors">
+                        <td className="py-3 px-3">
+                          <Link
+                            to={`/sales/${sale.id}`}
+                            className="font-bold text-[#181A2A] hover:text-[#5B50E6] transition-colors"
+                          >
+                            {sale.sale_number}
+                          </Link>
+                          <div className="text-[10px] text-[#8A90A2]">
+                            {sale.primary_product_name ||
+                              (sale.items && sale.items[0]?.product_name_snapshot) ||
+                              'Product Item'}
+                          </div>
+                        </td>
+
+                        <td className="py-3 px-3 font-medium text-[#5E6478]">
+                          {sale.customer_name_snapshot || 'Walk-in Client'}
+                        </td>
+
+                        <td className="py-3 px-3 text-[11px] text-[#8A90A2] whitespace-nowrap">
+                          {formatDate(sale.sale_date)}
+                        </td>
+
+                        <td className="py-3 px-3 font-bold text-[#181A2A] text-right tabular-nums whitespace-nowrap">
+                          {formatCurrency(sale.total_minor)}
+                        </td>
+
+                        <td className="py-3 px-3 text-center">
+                          <Badge paymentStatus={sale.payment_status} size="sm" />
+                        </td>
+
+                        <td className="py-3 px-3 text-center">
+                          <Badge saleStatus={sale.status} size="sm" />
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Table Footer: Pagination & Link to All Sales */}
+          {/* Table Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-[#ECEEF5] mt-3">
-            <div className="flex items-center gap-1.5">
-              <button
-                className="w-7 h-7 rounded-lg border border-[#ECEEF5] flex items-center justify-center text-[#8A90A2] hover:text-[#181A2A] hover:bg-[#F7F8FC] transition-colors cursor-pointer"
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-              <button
-                className="w-7 h-7 rounded-lg border border-[#ECEEF5] flex items-center justify-center text-[#8A90A2] hover:text-[#181A2A] hover:bg-[#F7F8FC] transition-colors cursor-pointer"
-                aria-label="Next page"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <span className="text-[11px] text-[#8A90A2]">
+              Showing {recentOrders.length} recent transactions
+            </span>
 
             <Link
               to="/sales"
-              className="text-xs font-semibold text-[#5E6478] hover:text-[#5B50E6] inline-flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold text-[#5B50E6] hover:underline inline-flex items-center gap-1 transition-colors"
             >
               <span>View all sales</span>
               <ExternalLink className="w-3 h-3" />
@@ -632,93 +770,73 @@ export const DashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* Support Tracker Heatmap (Spans 4 columns) */}
+        {/* Card 5: Inventory Stock Health & Low-Stock Alerts (4 Columns) */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-[#ECEEF5] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
-            {/* Header + Actions */}
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-[#181A2A]">Support Tracker</h3>
-              <button className="p-1 text-[#8A90A2] hover:text-[#181A2A] rounded-lg border border-[#ECEEF5] cursor-pointer">
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Gradient Intensity Legend */}
-            <div className="flex items-center gap-1 text-[10px] text-[#8A90A2] font-mono mt-3">
-              <span>0</span>
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#EEF2FF]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#C7D2FE]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#818CF8]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#6366F1]" />
-              <span className="w-2.5 h-2.5 rounded-xs bg-[#4F46E5]" />
-              <span>500</span>
-            </div>
-
-            {/* 5x7 Activity Matrix (5 hours x 7 days) */}
-            <div className="mt-4 space-y-2">
-              {[
-                {
-                  hour: '5PM',
-                  tiles: ['#EEF2FF', '#C7D2FE', '#818CF8', '#C7D2FE', '#818CF8', '#C7D2FE', '#EEF2FF'],
-                },
-                {
-                  hour: '4PM',
-                  tiles: ['#EEF2FF', '#C7D2FE', '#818CF8', 'HIGHLIGHT', '#818CF8', '#C7D2FE', '#EEF2FF'],
-                },
-                {
-                  hour: '3PM',
-                  tiles: ['#EEF2FF', '#EEF2FF', '#C7D2FE', '#4F46E5', '#C7D2FE', '#EEF2FF', '#EEF2FF'],
-                },
-                {
-                  hour: '2PM',
-                  tiles: ['#EEF2FF', '#EEF2FF', '#C7D2FE', '#6366F1', '#C7D2FE', '#EEF2FF', '#EEF2FF'],
-                },
-                {
-                  hour: '1PM',
-                  tiles: ['#EEF2FF', '#EEF2FF', '#C7D2FE', '#818CF8', '#C7D2FE', '#EEF2FF', '#EEF2FF'],
-                },
-              ].map((row) => (
-                <div key={row.hour} className="flex items-center gap-2">
-                  <span className="w-7 text-[10px] text-[#8A90A2] font-mono text-right">{row.hour}</span>
-                  <div className="flex-1 grid grid-cols-7 gap-1.5">
-                    {row.tiles.map((color, idx) => {
-                      if (color === 'HIGHLIGHT') {
-                        return (
-                          <div
-                            key={idx}
-                            className="aspect-square rounded-md bg-[#5B50E6] flex items-center justify-center text-[10px] font-bold text-white shadow-xs cursor-pointer hover:scale-105 transition-transform"
-                            title="497 support tickets resolved"
-                          >
-                            497
-                          </div>
-                        );
-                      }
-                      return (
-                        <div
-                          key={idx}
-                          style={{ backgroundColor: color }}
-                          className="aspect-square rounded-md hover:ring-1 hover:ring-[#5B50E6] transition-all cursor-pointer"
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-
-              {/* Day Labels along bottom of matrix */}
-              <div className="flex items-center gap-2 pt-1">
-                <span className="w-7" />
-                <div className="flex-1 grid grid-cols-7 gap-1.5 text-center text-[10px] text-[#8A90A2] font-medium">
-                  <span>Mon</span>
-                  <span>Tue</span>
-                  <span>Wed</span>
-                  <span>Thu</span>
-                  <span>Fri</span>
-                  <span>Sat</span>
-                  <span>Sun</span>
-                </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#181A2A]">Stock Alerts</h3>
+                <p className="text-[11px] text-[#8A90A2] mt-0.5">
+                  Products at or below reorder threshold
+                </p>
               </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF2F2] text-[#DC2626]">
+                {lowStockItems.length} alerts
+              </span>
             </div>
+
+            {/* Low-stock item cards */}
+            <div className="mt-4 space-y-2.5">
+              {lowStockItems.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#8A90A2] bg-[#F7F8FC] rounded-xl border border-[#ECEEF5]">
+                  All catalog inventory levels are healthy.
+                </div>
+              ) : (
+                lowStockItems.map((prod: any) => (
+                  <div
+                    key={prod.id}
+                    onClick={() => navigate(`/products/${prod.id}`)}
+                    className="p-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] rounded-xl border border-[#ECEEF5] flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold text-xs text-[#181A2A] truncate">
+                        {prod.name}
+                      </div>
+                      <div className="text-[10px] text-[#8A90A2] font-mono mt-0.5">
+                        {prod.sku} • {prod.category}
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                          prod.stock_quantity === 0
+                            ? 'bg-[#FEF2F2] text-[#DC2626]'
+                            : 'bg-[#FFFBEB] text-[#D97706]'
+                        }`}
+                      >
+                        {prod.stock_quantity === 0
+                          ? 'Out of Stock'
+                          : `${prod.stock_quantity} left`}
+                      </span>
+                      <div className="text-[10px] text-[#8A90A2] mt-0.5">
+                        Threshold: {prod.reorder_level}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[#ECEEF5] mt-3">
+            <Link
+              to="/products"
+              className="text-xs font-semibold text-[#5B50E6] hover:underline inline-flex items-center gap-1 transition-colors"
+            >
+              <span>Manage catalog & inventory</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
           </div>
         </div>
       </div>
@@ -726,19 +844,12 @@ export const DashboardView: React.FC = () => {
       {/* 4. Page Footer */}
       <footer className="text-center text-xs text-[#8A90A2] pt-4 pb-2">
         <p>
-          Copyright © 2025 Symphony, LLC. All rights reserved.{' '}
+          Copyright © 2026 BusinessFlow • Symphony SaaS Platform. All rights reserved.{' '}
           <button
             onClick={() => setAboutModalOpen(true)}
             className="hover:text-[#5B50E6] underline cursor-pointer"
           >
-            Privacy Policy
-          </button>{' '}
-          |{' '}
-          <button
-            onClick={() => setAboutModalOpen(true)}
-            className="hover:text-[#5B50E6] underline cursor-pointer"
-          >
-            Terms
+            About This Workspace
           </button>
         </p>
       </footer>

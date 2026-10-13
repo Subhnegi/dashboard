@@ -112,12 +112,24 @@ reportsRouter.get('/inventory', (_req: Request, res: Response) => {
   let totalRetailValuationMinor = 0;
   const lowStockItems: any[] = [];
   const outOfStockItems: any[] = [];
+  const byCategoryMap: Record<string, { category: string; count: number; units: number; cost_minor: number; retail_minor: number }> = {};
 
   for (const p of products) {
     const qty = Number(p.stock_quantity);
     totalUnits += qty;
-    totalCostValuationMinor += qty * Number(p.cost_price_minor);
-    totalRetailValuationMinor += qty * Number(p.selling_price_minor);
+    const costVal = qty * Number(p.cost_price_minor);
+    const retailVal = qty * Number(p.selling_price_minor);
+    totalCostValuationMinor += costVal;
+    totalRetailValuationMinor += retailVal;
+
+    const cat = p.category || 'Uncategorized';
+    if (!byCategoryMap[cat]) {
+      byCategoryMap[cat] = { category: cat, count: 0, units: 0, cost_minor: 0, retail_minor: 0 };
+    }
+    byCategoryMap[cat].count += 1;
+    byCategoryMap[cat].units += qty;
+    byCategoryMap[cat].cost_minor += costVal;
+    byCategoryMap[cat].retail_minor += retailVal;
 
     if (qty === 0) {
       outOfStockItems.push(p);
@@ -134,7 +146,107 @@ reportsRouter.get('/inventory', (_req: Request, res: Response) => {
       valuation_at_retail_minor: totalRetailValuationMinor,
       potential_profit_margin_minor: totalRetailValuationMinor - totalCostValuationMinor,
     },
+    by_category: Object.values(byCategoryMap),
     low_stock: lowStockItems,
     out_of_stock: outOfStockItems,
   });
 });
+
+// GET /api/reports/receivables
+reportsRouter.get('/receivables', (_req: Request, res: Response) => {
+  const db = getDb();
+
+  // All sales with payments
+  const sales = db.prepare(`
+    SELECT 
+      s.id,
+      s.sale_number,
+      s.customer_id,
+      s.customer_name_snapshot,
+      s.customer_contact_snapshot,
+      s.sale_date,
+      s.total_minor,
+      s.status,
+      COALESCE(SUM(p.amount_minor), 0) AS amount_paid_minor
+    FROM sales s
+    LEFT JOIN payments p ON p.sale_id = s.id
+    WHERE s.status = 'CONFIRMED'
+    GROUP BY s.id
+    ORDER BY s.sale_date DESC
+  `).all() as any[];
+
+  let totalBilledMinor = 0;
+  let totalCollectedMinor = 0;
+  let totalOutstandingMinor = 0;
+
+  const now = Date.now();
+  let agingCurrentMinor = 0; // <= 15 days
+  let aging15To30Minor = 0; // 16 - 30 days
+  let agingOver30Minor = 0; // > 30 days
+
+  const unpaidSales: any[] = [];
+  const customerBalancesMap: Record<string, { customer_name: string; contact?: string; total_orders: number; outstanding_minor: number; billed_minor: number }> = {};
+
+  for (const s of sales) {
+    const total = Number(s.total_minor);
+    const paid = Number(s.amount_paid_minor);
+    const balance = Math.max(0, total - paid);
+
+    totalBilledMinor += total;
+    totalCollectedMinor += paid;
+    totalOutstandingMinor += balance;
+
+    if (balance > 0) {
+      const daysAge = Math.floor((now - new Date(s.sale_date).getTime()) / (24 * 60 * 60 * 1000));
+      if (daysAge <= 15) {
+        agingCurrentMinor += balance;
+      } else if (daysAge <= 30) {
+        aging15To30Minor += balance;
+      } else {
+        agingOver30Minor += balance;
+      }
+
+      unpaidSales.push({
+        ...s,
+        balance_due_minor: balance,
+        days_aged: daysAge,
+      });
+
+      const custName = s.customer_name_snapshot || 'Walk-in Customer';
+      if (!customerBalancesMap[custName]) {
+        customerBalancesMap[custName] = {
+          customer_name: custName,
+          contact: s.customer_contact_snapshot,
+          total_orders: 0,
+          outstanding_minor: 0,
+          billed_minor: 0,
+        };
+      }
+      customerBalancesMap[custName].total_orders += 1;
+      customerBalancesMap[custName].outstanding_minor += balance;
+      customerBalancesMap[custName].billed_minor += total;
+    }
+  }
+
+  const collectionRatePct = totalBilledMinor > 0
+    ? Math.round((totalCollectedMinor / totalBilledMinor) * 100)
+    : 100;
+
+  res.json({
+    summary: {
+      total_billed_minor: totalBilledMinor,
+      total_collected_minor: totalCollectedMinor,
+      total_outstanding_minor: totalOutstandingMinor,
+      collection_rate_pct: collectionRatePct,
+      customers_with_balance: Object.keys(customerBalancesMap).length,
+    },
+    aging: {
+      current_15d_minor: agingCurrentMinor,
+      aging_16_to_30d_minor: aging15To30Minor,
+      aging_over_30d_minor: agingOver30Minor,
+    },
+    by_customer: Object.values(customerBalancesMap).sort((a, b) => b.outstanding_minor - a.outstanding_minor),
+    unpaid_orders: unpaidSales,
+  });
+});
+
