@@ -1,0 +1,15 @@
+.git
+.github
+data
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.log
+.env
+.env.local
+node_modules
+server/node_modules
+client/node_modules
+server/test

@@ -2,23 +2,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { createApp } from './app.js';
-import { getDb } from './db/connection.js';
-import { initializeSchema } from './db/schema.js';
-import { seedDatabase } from './db/seed.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 
 function bootstrap() {
-  const db = getDb();
-  initializeSchema(db);
-
-  // If products table is empty, auto-seed with initial records
-  const countRow = db.prepare(`SELECT COUNT(*) as cnt FROM products`).get() as any;
-  if (Number(countRow.cnt) === 0) {
-    console.log('[Bootstrap] Initializing demo seed data...');
-    seedDatabase(db);
-  }
-
   const app = createApp();
 
   const server = app.listen(PORT, () => {

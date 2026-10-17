@@ -8,9 +8,17 @@ export function getDatabasePath(): string {
   if (process.env.DATABASE_PATH) {
     return process.env.DATABASE_PATH;
   }
+  // On Vercel serverless or AWS Lambda, cwd is read-only. Use /tmp.
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return path.join(process.env.TMPDIR || '/tmp', 'businessflow.sqlite');
+  }
   const dbDir = path.resolve(process.cwd(), 'data');
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+    try {
+      fs.mkdirSync(dbDir, { recursive: true });
+    } catch {
+      return path.join(process.env.TMPDIR || '/tmp', 'businessflow.sqlite');
+    }
   }
   return path.join(dbDir, 'businessflow.sqlite');
 }

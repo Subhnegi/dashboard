@@ -10,16 +10,56 @@ import { dashboardRouter } from './modules/dashboard/dashboard.router.js';
 import { settingsRouter } from './modules/settings/settings.router.js';
 import { demoRouter } from './modules/demo/demo.router.js';
 import { errorHandler, NotFoundError } from './shared/errors.js';
+import { getDb } from './db/connection.js';
+import { initializeSchema } from './db/schema.js';
+import { seedDatabase } from './db/seed.js';
+
+let dbInitialized = false;
+
+export function ensureDatabase(): void {
+  if (dbInitialized) return;
+  try {
+    const db = getDb();
+    initializeSchema(db);
+    const countRow = db.prepare(`SELECT COUNT(*) as cnt FROM products`).get() as any;
+    if (!countRow || Number(countRow.cnt) === 0) {
+      console.log('[BusinessFlow API] Initializing demo seed data...');
+      seedDatabase(db);
+    }
+  } catch (err) {
+    console.warn('[BusinessFlow API] Notice during database initialization:', err);
+    try {
+      const db = getDb();
+      seedDatabase(db);
+    } catch (seedErr) {
+      console.error('[BusinessFlow API] Database initialization error:', seedErr);
+    }
+  }
+  dbInitialized = true;
+}
 
 export function createApp(): express.Application {
+  ensureDatabase();
   const app = express();
 
   // Middleware
   app.use(cors());
   app.use(express.json());
 
-  // Health check
-  app.get('/api/health', (_req, res) => {
+  // API Router containing all application endpoints
+  const apiRouter = express.Router();
+
+  // Root & Health check endpoints
+  apiRouter.get('/', (_req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'businessflow-api',
+      message: 'BusinessFlow API is running',
+      version: '1.0.0',
+    });
+  });
+
+  apiRouter.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
       service: 'businessflow-api',
@@ -27,17 +67,21 @@ export function createApp(): express.Application {
     });
   });
 
-  // Mount API modules
-  app.use('/api/products', productsRouter);
-  app.use('/api/customers', customersRouter);
-  app.use('/api/sales', salesRouter);
-  app.use('/api/sales', invoicesRouter);
-  app.use('/api/invoices', invoicesRouter);
-  app.use('/api/expenses', expensesRouter);
-  app.use('/api/reports', reportsRouter);
-  app.use('/api/dashboard', dashboardRouter);
-  app.use('/api/settings', settingsRouter);
-  app.use('/api/demo', demoRouter);
+  // Mount API modules on apiRouter
+  apiRouter.use('/products', productsRouter);
+  apiRouter.use('/customers', customersRouter);
+  apiRouter.use('/sales', salesRouter);
+  apiRouter.use('/sales', invoicesRouter);
+  apiRouter.use('/invoices', invoicesRouter);
+  apiRouter.use('/expenses', expensesRouter);
+  apiRouter.use('/reports', reportsRouter);
+  apiRouter.use('/dashboard', dashboardRouter);
+  apiRouter.use('/settings', settingsRouter);
+  apiRouter.use('/demo', demoRouter);
+
+  // Mount at both /api and / to handle standard paths and path rewrites seamlessly
+  app.use('/api', apiRouter);
+  app.use('/', apiRouter);
 
   // Catch-all 404 handler
   app.use((req, _res, next) => {
