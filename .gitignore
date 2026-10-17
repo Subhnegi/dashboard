@@ -11,3 +11,5 @@ build/
 *.db
 data/
 .DS_Store
+client/package-lock.json
+server/package-lock.json
